@@ -80,7 +80,7 @@
   <!-- Socket.IO Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
   <script>
-    const socket = io("http://localhost:3600");
+    const socket = io("http://localhost:5400");
 
     // Function to format date to DD.MM.YYYY
     function formatDate(dateString) {
@@ -145,7 +145,7 @@
     // Function to load and display attended courses
     async function loadAttendedCourses() {
       try {
-        const response = await fetch("http://localhost:3600/attendance");
+        const response = await fetch("http://localhost:5400/attendance");
         if (!response.ok) {
           throw new Error("Network response was not ok");
         }
