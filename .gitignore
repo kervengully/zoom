@@ -1,3 +1,5 @@
 # Node.js
 node_modules/
 .env
+attendance.csv
+attendance.json
