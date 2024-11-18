@@ -3,17 +3,18 @@ require('dotenv').config();
 
 const express = require('express');
 const fs = require('fs');
-const { createObjectCsvWriter } = require('csv-writer');
 const moment = require('moment-timezone');
 const crypto = require('crypto');
+const nodeCron = require('node-cron');
+const nodemailer = require('nodemailer');
+const { createObjectCsvWriter } = require('csv-writer');
 
 const app = express();
 const port = process.env.PORT || 3600;
 
 app.use(express.json());
 
-// Paths to files
-const attendanceCsvPath = 'attendance.csv';
+// Paths
 const coursesJsonPath = 'courses.json';
 
 // Load courses data
@@ -28,36 +29,6 @@ try {
 
 // In-memory store for ongoing meetings
 const ongoingMeetings = {};
-
-// CSV writer setup
-const csvWriter = createObjectCsvWriter({
-  path: attendanceCsvPath,
-  header: [
-    { id: 'teacher_name', title: 'Teacher Name' },
-    { id: 'course_name', title: 'Course Name' },
-    { id: 'meeting_id', title: 'Meeting ID' },
-    { id: 'scheduled_week_day', title: 'Scheduled Week Day' },
-    { id: 'attended_week_day', title: 'Attended Week Day' },
-    { id: 'date', title: 'Date' },
-    { id: 'scheduled_time', title: 'Scheduled Time' },
-    { id: 'entered_time', title: 'Entered Time' },
-    { id: 'finished_time', title: 'Finished Time' },
-    { id: 'total_time', title: 'Total Time (minutes)' },
-    { id: 'rate_pound', title: 'Rate (£)' },
-    { id: 'rate_formula', title: 'Rate Formula' },
-    { id: 'calculated_payment', title: 'Calculated Payment (£)' },
-    { id: 'approved_payment', title: 'Approved Payment (£)' },
-    { id: 'status', title: 'Status' },
-  ],
-  append: true,
-});
-
-// Ensure CSV file has headers
-if (!fs.existsSync(attendanceCsvPath)) {
-  csvWriter.writeRecords([]).then(() => {
-    console.log('CSV headers written.');
-  });
-}
 
 // Helper functions
 function parseISOTime(timeStr) {
@@ -112,6 +83,17 @@ function getScheduledDateTime(actualStartTime, scheduledWeekDay, scheduledTime) 
   return scheduledDateTime;
 }
 
+// Configure nodemailer transporter
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT) || 587,
+  secure: false, // true for 465, false for other ports
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
+
 // Endpoint for Zoom webhook events
 app.post('/webhook', (req, res) => {
   const event = req.body.event;
@@ -151,11 +133,13 @@ app.post('/webhook', (req, res) => {
     const meetingId = payload.object.id;
     const topic = payload.object.topic;
     const startTime = payload.object.start_time;
+    const hostEmail = payload.object.host_email;
 
-    // Store the start time and topic of the meeting
+    // Store the start time, topic, and host email of the meeting
     ongoingMeetings[meetingId] = {
       topic,
       startTime,
+      hostEmail,
     };
 
     console.log(`Meeting started: ID ${meetingId}, Topic: ${topic}`);
@@ -166,7 +150,7 @@ app.post('/webhook', (req, res) => {
     const endTime = payload.object.end_time;
 
     if (ongoingMeetings[meetingId]) {
-      const { topic, startTime } = ongoingMeetings[meetingId];
+      const { topic, startTime, hostEmail } = ongoingMeetings[meetingId];
 
       // Calculate total time in minutes
       const enteredTimeDt = parseISOTime(startTime);
@@ -203,11 +187,18 @@ app.post('/webhook', (req, res) => {
       let status = 'Not attended';
       if (enteredTimeDt.isSameOrBefore(threeMinutesBefore)) {
         status = 'Attended';
+      } else {
+        // Send email to IT if host didn't start the course 3 minutes before scheduled time
+        sendEmailToIT({
+          subject: `Host Late Start Alert - ${topic}`,
+          text: `The host (${hostEmail}) did not start the course "${topic}" 3 minutes before the scheduled time.`,
+        });
       }
 
       // Prepare attendance record
       const attendanceRecord = {
         teacher_name: teacherName,
+        email: hostEmail,
         course_name: topic,
         meeting_id: meetingId,
         scheduled_week_day: scheduledWeekDay,
@@ -224,11 +215,8 @@ app.post('/webhook', (req, res) => {
         status,
       };
 
-      // Save to CSV file
-      csvWriter
-        .writeRecords([attendanceRecord])
-        .then(() => console.log('Attendance record saved to CSV.'))
-        .catch((err) => console.error('Error writing to CSV:', err));
+      // Save to CSV file specific to the host's email and month
+      saveAttendanceRecord(attendanceRecord, hostEmail);
 
       // Remove the meeting from ongoing meetings
       delete ongoingMeetings[meetingId];
@@ -240,6 +228,120 @@ app.post('/webhook', (req, res) => {
   }
 
   res.status(200).json({ message: 'Event processed.' });
+});
+
+// Function to save attendance record to CSV file
+function saveAttendanceRecord(record, hostEmail) {
+  const monthYear = moment(record.date).format('MMMM YYYY');
+  const sanitizedEmail = hostEmail.replace(/[/\\?%*:|"<>]/g, '-'); // Replace illegal filename characters
+  const csvFilePath = `${sanitizedEmail} - ${monthYear}.csv`;
+
+  // Check if the CSV file exists, if not, write headers
+  if (!fs.existsSync(csvFilePath)) {
+    const csvWriter = createObjectCsvWriter({
+      path: csvFilePath,
+      header: [
+        { id: 'teacher_name', title: 'Teacher Name' },
+        { id: 'email', title: 'Email' },
+        { id: 'course_name', title: 'Course Name' },
+        { id: 'meeting_id', title: 'Meeting ID' },
+        { id: 'scheduled_week_day', title: 'Scheduled Week Day' },
+        { id: 'attended_week_day', title: 'Attended Week Day' },
+        { id: 'date', title: 'Date' },
+        { id: 'scheduled_time', title: 'Scheduled Time' },
+        { id: 'entered_time', title: 'Entered Time' },
+        { id: 'finished_time', title: 'Finished Time' },
+        { id: 'total_time', title: 'Total Time (minutes)' },
+        { id: 'rate_pound', title: 'Rate (£)' },
+        { id: 'rate_formula', title: 'Rate Formula' },
+        { id: 'calculated_payment', title: 'Calculated Payment (£)' },
+        { id: 'approved_payment', title: 'Approved Payment (£)' },
+        { id: 'status', title: 'Status' },
+      ],
+    });
+
+    csvWriter
+      .writeRecords([record])
+      .then(() => console.log(`Attendance record saved to new CSV file: ${csvFilePath}`))
+      .catch((err) => console.error('Error writing to CSV:', err));
+  } else {
+    // Append to existing CSV file
+    const csvWriter = createObjectCsvWriter({
+      path: csvFilePath,
+      header: [
+        { id: 'teacher_name', title: 'Teacher Name' },
+        { id: 'email', title: 'Email' },
+        // ... other headers
+      ],
+      append: true,
+    });
+
+    csvWriter
+      .writeRecords([record])
+      .then(() => console.log(`Attendance record appended to CSV file: ${csvFilePath}`))
+      .catch((err) => console.error('Error writing to CSV:', err));
+  }
+}
+
+// Function to send email to IT
+function sendEmailToIT({ subject, text }) {
+  const mailOptions = {
+    from: process.env.SMTP_USER,
+    to: process.env.IT_EMAIL,
+    subject,
+    text,
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      return console.error('Error sending email:', error);
+    }
+    console.log('Email sent:', info.response);
+  });
+}
+
+// Schedule a task to run on the last day of each month at 23:00
+nodeCron.schedule('0 23 L * *', () => {
+  console.log('Monthly email job running...');
+
+  // Get all CSV files for the current month
+  const currentMonth = moment().format('MMMM YYYY');
+  fs.readdir('.', (err, files) => {
+    if (err) {
+      return console.error('Error reading directory:', err);
+    }
+
+    const csvFiles = files.filter(
+      (file) =>
+        file.endsWith('.csv') && file.includes(` - ${currentMonth}.csv`)
+    );
+
+    if (csvFiles.length === 0) {
+      console.log('No CSV files to send for this month.');
+      return;
+    }
+
+    // Attach all CSV files and send email to IT
+    const attachments = csvFiles.map((filename) => ({
+      filename,
+      path: `./${filename}`,
+    }));
+
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      to: process.env.IT_EMAIL,
+      subject: `Monthly Attendance Reports - ${currentMonth}`,
+      text: `Please find attached the attendance reports for ${currentMonth}.`,
+      attachments,
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        return console.error('Error sending monthly email:', error);
+      }
+      console.log('Monthly email sent:', info.response);
+    });
+  });
 });
 
 // Start the server
