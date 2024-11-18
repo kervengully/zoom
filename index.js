@@ -300,48 +300,60 @@ function sendEmailToIT({ subject, text }) {
   });
 }
 
-// Schedule a task to run on the last day of each month at 23:00
-nodeCron.schedule('0 23 L * *', () => {
-  console.log('Monthly email job running...');
+// Schedule a task to run every day at 23:00
+nodeCron.schedule('0 23 * * *', () => {
+  console.log('Daily check for last day of the month at 23:00...');
 
-  // Get all CSV files for the current month
-  const currentMonth = moment().format('MMMM YYYY');
-  fs.readdir('.', (err, files) => {
-    if (err) {
-      return console.error('Error reading directory:', err);
-    }
+  // Get the current date in London time
+  const today = moment().tz('Europe/London');
+  const tomorrow = today.clone().add(1, 'day');
 
-    const csvFiles = files.filter(
-      (file) =>
-        file.endsWith('.csv') && file.includes(` - ${currentMonth}.csv`)
-    );
+  // Check if today is the last day of the month
+  if (today.month() !== tomorrow.month()) {
+    console.log('Today is the last day of the month. Running monthly email job...');
 
-    if (csvFiles.length === 0) {
-      console.log('No CSV files to send for this month.');
-      return;
-    }
+    // Get all CSV files for the current month
+    const currentMonth = today.format('MMMM YYYY');
 
-    // Attach all CSV files and send email to IT
-    const attachments = csvFiles.map((filename) => ({
-      filename,
-      path: `./${filename}`,
-    }));
-
-    const mailOptions = {
-      from: process.env.SMTP_USER,
-      to: process.env.IT_EMAIL,
-      subject: `Monthly Attendance Reports - ${currentMonth}`,
-      text: `Please find attached the attendance reports for ${currentMonth}.`,
-      attachments,
-    };
-
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        return console.error('Error sending monthly email:', error);
+    fs.readdir('.', (err, files) => {
+      if (err) {
+        return console.error('Error reading directory:', err);
       }
-      console.log('Monthly email sent:', info.response);
+
+      const csvFiles = files.filter(
+        (file) =>
+          file.endsWith('.csv') && file.includes(` - ${currentMonth}.csv`)
+      );
+
+      if (csvFiles.length === 0) {
+        console.log('No CSV files to send for this month.');
+        return;
+      }
+
+      // Attach all CSV files and send email to IT
+      const attachments = csvFiles.map((filename) => ({
+        filename,
+        path: `./${filename}`,
+      }));
+
+      const mailOptions = {
+        from: process.env.SMTP_USER,
+        to: process.env.IT_EMAIL,
+        subject: `Monthly Attendance Reports - ${currentMonth}`,
+        text: `Please find attached the attendance reports for ${currentMonth}.`,
+        attachments,
+      };
+
+      transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+          return console.error('Error sending monthly email:', error);
+        }
+        console.log('Monthly email sent:', info.response);
+      });
     });
-  });
+  } else {
+    console.log('Today is not the last day of the month. No action taken.');
+  }
 });
 
 // Start the server
