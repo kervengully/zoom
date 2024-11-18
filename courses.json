@@ -4,7 +4,7 @@
       "course_id": 1,
       "course_name": "Kerven Gullyyev's Zoom Meeting",
       "teacher_name": "Kerven Gullyyev",
-      "week_day": "Monday",
+      "scheduled_week_day": "Monday",
       "scheduled_time": "23:00",
       "rate_pound": 20
     },
@@ -12,7 +12,7 @@
       "course_id": 2,
       "course_name": "Math Omer",
       "teacher_name": "Dennis Lukozi",
-      "week_day": "Tuesday",
+      "scheduled_week_day": "Tuesday",
       "scheduled_time": "0:00",
       "rate_pound": 20
     },
@@ -20,7 +20,7 @@
       "course_id": 3,
       "course_name": "Sevval Physics",
       "teacher_name": "Dennis Lukozi",
-      "week_day": "Wednesday",
+      "scheduled_week_day": "Wednesday",
       "scheduled_time": "1:00",
       "rate_pound": 20
     },
@@ -28,7 +28,7 @@
       "course_id": 4,
       "course_name": "Elif Maths",
       "teacher_name": "Dennis Lukozi",
-      "week_day": "Thursday",
+      "scheduled_week_day": "Thursday",
       "scheduled_time": "2:00",
       "rate_pound": 20
     },
@@ -36,7 +36,7 @@
       "course_id": 5,
       "course_name": "Lower Secondary Computing",
       "teacher_name": "Benjamin Jervis",
-      "week_day": "Friday",
+      "scheduled_week_day": "Friday",
       "scheduled_time": "3:00",
       "rate_pound": 20
     },
@@ -44,7 +44,7 @@
       "course_id": 6,
       "course_name": "Primary Computing",
       "teacher_name": "Benjamin Jervis",
-      "week_day": "Saturday",
+      "scheduled_week_day": "Saturday",
       "scheduled_time": "4:00",
       "rate_pound": 20
     },
@@ -52,7 +52,7 @@
       "course_id": 7,
       "course_name": "A Level Media Studies",
       "teacher_name": "Benjamin Jervis",
-      "week_day": "Sunday",
+      "scheduled_week_day": "Sunday",
       "scheduled_time": "5:00",
       "rate_pound": 20
     },
@@ -60,7 +60,7 @@
       "course_id": 8,
       "course_name": "IGCSE Computer Science",
       "teacher_name": "Benjamin Jervis",
-      "week_day": "Monday",
+      "scheduled_week_day": "Monday",
       "scheduled_time": "6:00",
       "rate_pound": 20
     },
@@ -68,7 +68,7 @@
       "course_id": 9,
       "course_name": "A Level Computer Science Heritage",
       "teacher_name": "Benjamin Jervis",
-      "week_day": "Tuesday",
+      "scheduled_week_day": "Tuesday",
       "scheduled_time": "7:00",
       "rate_pound": 20
     },
@@ -76,7 +76,7 @@
       "course_id": 10,
       "course_name": "Sociology King's Oak School",
       "teacher_name": "Danielle Babatunde",
-      "week_day": "Wednesday",
+      "scheduled_week_day": "Wednesday",
       "scheduled_time": "8:00",
       "rate_pound": 20
     },
@@ -84,7 +84,7 @@
       "course_id": 11,
       "course_name": "A Level Business Studies",
       "teacher_name": "Darion Hurter",
-      "week_day": "Thursday",
+      "scheduled_week_day": "Thursday",
       "scheduled_time": "9:00",
       "rate_pound": 20
     },
@@ -92,7 +92,7 @@
       "course_id": 12,
       "course_name": "A Level Economics",
       "teacher_name": "Darion Hurter",
-      "week_day": "Friday",
+      "scheduled_week_day": "Friday",
       "scheduled_time": "10:00",
       "rate_pound": 20
     },
@@ -100,7 +100,7 @@
       "course_id": 13,
       "course_name": "IGCSE Economics",
       "teacher_name": "Darion Hurter",
-      "week_day": "Saturday",
+      "scheduled_week_day": "Saturday",
       "scheduled_time": "11:00",
       "rate_pound": 20
     },
@@ -108,7 +108,7 @@
       "course_id": 14,
       "course_name": "IGCSE Maths",
       "teacher_name": "Darion Hurter",
-      "week_day": "Sunday",
+      "scheduled_week_day": "Sunday",
       "scheduled_time": "12:00",
       "rate_pound": 20
     },
@@ -116,7 +116,7 @@
       "course_id": 15,
       "course_name": "Lower Secondary Maths",
       "teacher_name": "Darion Hurter",
-      "week_day": "Monday",
+      "scheduled_week_day": "Monday",
       "scheduled_time": "13:00",
       "rate_pound": 20
     },
@@ -124,7 +124,7 @@
       "course_id": 16,
       "course_name": "A level Business",
       "teacher_name": "Faraz Ahmad",
-      "week_day": "Tuesday",
+      "scheduled_week_day": "Tuesday",
       "scheduled_time": "14:00",
       "rate_pound": 20
     },
@@ -132,7 +132,7 @@
       "course_id": 17,
       "course_name": "BOra IGCSE Business",
       "teacher_name": "Faraz Ahmad",
-      "week_day": "Wednesday",
+      "scheduled_week_day": "Wednesday",
       "scheduled_time": "15:00",
       "rate_pound": 20
     },
@@ -140,7 +140,7 @@
       "course_id": 18,
       "course_name": "A Level Sociology",
       "teacher_name": "James Broad",
-      "week_day": "Thursday",
+      "scheduled_week_day": "Thursday",
       "scheduled_time": "16:00",
       "rate_pound": 20
     },
@@ -148,7 +148,7 @@
       "course_id": 19,
       "course_name": "A Level Psychology",
       "teacher_name": "James Broad",
-      "week_day": "Friday",
+      "scheduled_week_day": "Friday",
       "scheduled_time": "17:00",
       "rate_pound": 20
     },
@@ -156,7 +156,7 @@
       "course_id": 20,
       "course_name": "IGCSE Sociology",
       "teacher_name": "James Broad",
-      "week_day": "Saturday",
+      "scheduled_week_day": "Saturday",
       "scheduled_time": "18:00",
       "rate_pound": 20
     },
@@ -164,7 +164,7 @@
       "course_id": 21,
       "course_name": "Lower Secondary Global Perspectives",
       "teacher_name": "James Broad",
-      "week_day": "Sunday",
+      "scheduled_week_day": "Sunday",
       "scheduled_time": "19:00",
       "rate_pound": 20
     },
@@ -172,7 +172,7 @@
       "course_id": 22,
       "course_name": "Primary Global Perspectives",
       "teacher_name": "James Broad",
-      "week_day": "Monday",
+      "scheduled_week_day": "Monday",
       "scheduled_time": "20:00",
       "rate_pound": 20
     },
@@ -180,7 +180,7 @@
       "course_id": 23,
       "course_name": "A level Global Perspective",
       "teacher_name": "James Broad",
-      "week_day": "Tuesday",
+      "scheduled_week_day": "Tuesday",
       "scheduled_time": "21:00",
       "rate_pound": 20
     }
