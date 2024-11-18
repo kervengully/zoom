@@ -133,13 +133,13 @@ app.post('/webhook', (req, res) => {
     const meetingId = payload.object.id;
     const topic = payload.object.topic;
     const startTime = payload.object.start_time;
-    const hostEmail = payload.object.host_email;
+    const hostEmail = payload.object.host_email || null; // Handle undefined host_email
 
     // Store the start time, topic, and host email of the meeting
     ongoingMeetings[meetingId] = {
       topic,
       startTime,
-      hostEmail,
+      hostEmail, // May be null
     };
 
     console.log(`Meeting started: ID ${meetingId}, Topic: ${topic}`);
@@ -152,11 +152,6 @@ app.post('/webhook', (req, res) => {
     if (ongoingMeetings[meetingId]) {
       const { topic, startTime, hostEmail } = ongoingMeetings[meetingId];
 
-      // Calculate total time in minutes
-      const enteredTimeDt = parseISOTime(startTime);
-      const finishedTimeDt = parseISOTime(endTime);
-      const totalTime = computeTotalMinutes(enteredTimeDt, finishedTimeDt);
-
       // Match meeting with course
       const course = courses.find((c) => c.course_name === topic);
 
@@ -167,6 +162,15 @@ app.post('/webhook', (req, res) => {
       }
 
       const teacherName = course.teacher_name;
+
+      // Use teacherName if hostEmail is undefined
+      const email = hostEmail || teacherName;
+
+      // Meeting times and calculations
+      const enteredTimeDt = parseISOTime(startTime);
+      const finishedTimeDt = parseISOTime(endTime);
+      const totalTime = computeTotalMinutes(enteredTimeDt, finishedTimeDt);
+
       const scheduledWeekDay = course.scheduled_week_day;
       const scheduledTime = course.scheduled_time;
       const ratePound = course.rate_pound;
@@ -191,14 +195,14 @@ app.post('/webhook', (req, res) => {
         // Send email to IT if host didn't start the course 3 minutes before scheduled time
         sendEmailToIT({
           subject: `Host Late Start Alert - ${topic}`,
-          text: `The host (${hostEmail}) did not start the course "${topic}" 3 minutes before the scheduled time.`,
+          text: `The host (${email}) did not start the course "${topic}" 3 minutes before the scheduled time.`,
         });
       }
 
       // Prepare attendance record
       const attendanceRecord = {
         teacher_name: teacherName,
-        email: hostEmail,
+        email: email, // Use email variable
         course_name: topic,
         meeting_id: meetingId,
         scheduled_week_day: scheduledWeekDay,
@@ -215,8 +219,8 @@ app.post('/webhook', (req, res) => {
         status,
       };
 
-      // Save to CSV file specific to the host's email and month
-      saveAttendanceRecord(attendanceRecord, hostEmail);
+      // Save to CSV file specific to the host's email (or teacher name) and month
+      saveAttendanceRecord(attendanceRecord, email);
 
       // Remove the meeting from ongoing meetings
       delete ongoingMeetings[meetingId];
@@ -231,56 +235,51 @@ app.post('/webhook', (req, res) => {
 });
 
 // Function to save attendance record to CSV file
-function saveAttendanceRecord(record, hostEmail) {
+function saveAttendanceRecord(record, email) {
   const monthYear = moment(record.date).format('MMMM YYYY');
-  const sanitizedEmail = hostEmail.replace(/[/\\?%*:|"<>]/g, '-'); // Replace illegal filename characters
+  const sanitizedEmail = email.replace(/[/\\?%*:|"<>]/g, '-'); // Replace illegal filename characters
   const csvFilePath = `${sanitizedEmail} - ${monthYear}.csv`;
 
-  // Check if the CSV file exists, if not, write headers
-  if (!fs.existsSync(csvFilePath)) {
-    const csvWriter = createObjectCsvWriter({
-      path: csvFilePath,
-      header: [
-        { id: 'teacher_name', title: 'Teacher Name' },
-        { id: 'email', title: 'Email' },
-        { id: 'course_name', title: 'Course Name' },
-        { id: 'meeting_id', title: 'Meeting ID' },
-        { id: 'scheduled_week_day', title: 'Scheduled Week Day' },
-        { id: 'attended_week_day', title: 'Attended Week Day' },
-        { id: 'date', title: 'Date' },
-        { id: 'scheduled_time', title: 'Scheduled Time' },
-        { id: 'entered_time', title: 'Entered Time' },
-        { id: 'finished_time', title: 'Finished Time' },
-        { id: 'total_time', title: 'Total Time (minutes)' },
-        { id: 'rate_pound', title: 'Rate (£)' },
-        { id: 'rate_formula', title: 'Rate Formula' },
-        { id: 'calculated_payment', title: 'Calculated Payment (£)' },
-        { id: 'approved_payment', title: 'Approved Payment (£)' },
-        { id: 'status', title: 'Status' },
-      ],
-    });
+  // Define CSV headers
+  const csvHeaders = [
+    { id: 'teacher_name', title: 'Teacher Name' },
+    { id: 'email', title: 'Email' },
+    { id: 'course_name', title: 'Course Name' },
+    { id: 'meeting_id', title: 'Meeting ID' },
+    { id: 'scheduled_week_day', title: 'Scheduled Week Day' },
+    { id: 'attended_week_day', title: 'Attended Week Day' },
+    { id: 'date', title: 'Date' },
+    { id: 'scheduled_time', title: 'Scheduled Time' },
+    { id: 'entered_time', title: 'Entered Time' },
+    { id: 'finished_time', title: 'Finished Time' },
+    { id: 'total_time', title: 'Total Time (minutes)' },
+    { id: 'rate_pound', title: 'Rate (£)' },
+    { id: 'rate_formula', title: 'Rate Formula' },
+    { id: 'calculated_payment', title: 'Calculated Payment (£)' },
+    { id: 'approved_payment', title: 'Approved Payment (£)' },
+    { id: 'status', title: 'Status' },
+  ];
 
-    csvWriter
-      .writeRecords([record])
-      .then(() => console.log(`Attendance record saved to new CSV file: ${csvFilePath}`))
-      .catch((err) => console.error('Error writing to CSV:', err));
-  } else {
-    // Append to existing CSV file
-    const csvWriter = createObjectCsvWriter({
-      path: csvFilePath,
-      header: [
-        { id: 'teacher_name', title: 'Teacher Name' },
-        { id: 'email', title: 'Email' },
-        // ... other headers
-      ],
-      append: true,
-    });
+  // Check if the CSV file exists
+  const fileExists = fs.existsSync(csvFilePath);
 
-    csvWriter
-      .writeRecords([record])
-      .then(() => console.log(`Attendance record appended to CSV file: ${csvFilePath}`))
-      .catch((err) => console.error('Error writing to CSV:', err));
-  }
+  // Create CSV writer
+  const csvWriter = createObjectCsvWriter({
+    path: csvFilePath,
+    header: csvHeaders,
+    append: fileExists, // Append if file exists, otherwise write headers
+  });
+
+  csvWriter
+    .writeRecords([record])
+    .then(() => {
+      if (fileExists) {
+        console.log(`Attendance record appended to CSV file: ${csvFilePath}`);
+      } else {
+        console.log(`Attendance record saved to new CSV file: ${csvFilePath}`);
+      }
+    })
+    .catch((err) => console.error('Error writing to CSV:', err));
 }
 
 // Function to send email to IT
