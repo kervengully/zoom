@@ -164,9 +164,19 @@ app.post('/webhook', (req, res) => {
       const threeMinutesBefore = scheduledDateTime.clone().subtract(3, 'minutes');
 
       let status = 'Not attended';
-      if (enteredTimeDt.isSameOrBefore(threeMinutesBefore)) {
+
+      // Check if Scheduled Week Day and Attended Week Day match
+      if (scheduledWeekDay !== attendedWeekDay) {
+        status = 'Not attended';
+        // Optionally, send email notification
+        // sendEmailToIT({
+        //   subject: `Weekday Mismatch Alert - ${topic}`,
+        //   text: `The course "${topic}" was scheduled for ${scheduledWeekDay}, but was attended on ${attendedWeekDay}.`,
+        // });
+      } else if (enteredTimeDt.isSameOrBefore(threeMinutesBefore)) {
         status = 'Attended';
       } else {
+        status = 'Not attended';
         // Send email to IT if host didn't start the course 3 minutes before scheduled time
         sendEmailToIT({
           subject: `Host Late Start Alert - ${topic}`,
