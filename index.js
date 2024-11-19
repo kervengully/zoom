@@ -168,7 +168,7 @@ app.post('/webhook', (req, res) => {
       // Check if Scheduled Week Day and Attended Week Day match
       if (scheduledWeekDay !== attendedWeekDay) {
         status = 'Not attended';
-        // Optionally, send email notification
+        // Commented out emailing Weekday Mismatch Alert
         // sendEmailToIT({
         //   subject: `Weekday Mismatch Alert - ${topic}`,
         //   text: `The course "${topic}" was scheduled for ${scheduledWeekDay}, but was attended on ${attendedWeekDay}.`,
@@ -223,7 +223,16 @@ app.post('/webhook', (req, res) => {
 function saveAttendanceRecord(record, email) {
   const monthYear = moment(record.date).format('MMMM YYYY');
   const sanitizedEmail = email.replace(/[/\\?%*:|"<>]/g, '-'); // Replace illegal filename characters
-  const csvFilePath = path.join(reportsDir, `${sanitizedEmail} - ${monthYear}.csv`);
+
+  // Create subdirectory for the month inside Reports directory
+  const monthDir = path.join(reportsDir, `${monthYear}`);
+
+  // Ensure the month directory exists
+  if (!fs.existsSync(monthDir)) {
+    fs.mkdirSync(monthDir);
+  }
+
+  const csvFilePath = path.join(monthDir, `${sanitizedEmail} - ${monthYear}.csv`);
 
   // Define CSV headers
   const csvHeaders = [
@@ -298,8 +307,14 @@ nodeCron.schedule('0 23 * * *', () => {
 
     // Get all CSV files for the current month
     const currentMonth = today.format('MMMM YYYY');
+    const monthDir = path.join(reportsDir, currentMonth);
 
-    fs.readdir(reportsDir, (err, files) => {
+    if (!fs.existsSync(monthDir)) {
+      console.log('No reports directory for this month.');
+      return;
+    }
+
+    fs.readdir(monthDir, (err, files) => {
       if (err) {
         return console.error('Error reading directory:', err);
       }
@@ -317,7 +332,7 @@ nodeCron.schedule('0 23 * * *', () => {
       // Attach all CSV files and send email to IT
       const attachments = csvFiles.map((filename) => ({
         filename,
-        path: path.join(reportsDir, filename),
+        path: path.join(monthDir, filename),
       }));
 
       const mailOptions = {
