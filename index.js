@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const nodeCron = require('node-cron');
 const nodemailer = require('nodemailer');
 const { createObjectCsvWriter } = require('csv-writer');
+const path = require('path');
 
 const app = express();
 const port = process.env.PORT || 3600;
@@ -16,6 +17,12 @@ app.use(express.json());
 
 // Paths
 const coursesJsonPath = 'courses.json';
+const reportsDir = path.join(__dirname, 'Reports');
+
+// Ensure the Reports directory exists
+if (!fs.existsSync(reportsDir)) {
+  fs.mkdirSync(reportsDir);
+}
 
 // Load courses data
 let courses = [];
@@ -47,40 +54,8 @@ function computeTotalMinutes(startTime, endTime) {
   return endTime.diff(startTime, 'minutes');
 }
 
-function getScheduledDateTime(actualStartTime, scheduledWeekDay, scheduledTime) {
-  const weekDayNumbers = {
-    Sunday: 0,
-    Monday: 1,
-    Tuesday: 2,
-    Wednesday: 3,
-    Thursday: 4,
-    Friday: 5,
-    Saturday: 6,
-  };
-
-  const scheduledWeekDayNum = weekDayNumbers[scheduledWeekDay];
-
-  const actualStartMoment = parseISOTime(actualStartTime);
-  const weekStart = actualStartMoment.clone().startOf('week');
-
-  let scheduledDateTime = weekStart
-    .clone()
-    .add(scheduledWeekDayNum, 'days')
-    .set({
-      hour: parseInt(scheduledTime.split(':')[0], 10),
-      minute: parseInt(scheduledTime.split(':')[1], 10),
-      second: 0,
-      millisecond: 0,
-    });
-
-  // Adjust scheduledDateTime if it's not in the same week as the actual start time
-  if (scheduledDateTime.isAfter(actualStartMoment.clone().add(3, 'days'))) {
-    scheduledDateTime.subtract(7, 'days');
-  } else if (scheduledDateTime.isBefore(actualStartMoment.clone().subtract(3, 'days'))) {
-    scheduledDateTime.add(7, 'days');
-  }
-
-  return scheduledDateTime;
+function getScheduledDateTime(date, scheduledTime) {
+  return moment.tz(`${date} ${scheduledTime}`, 'YYYY-MM-DD HH:mm', 'Europe/London');
 }
 
 // Configure nodemailer transporter
@@ -185,7 +160,7 @@ app.post('/webhook', (req, res) => {
       const approvedPayment = Math.min(calculatedPayment, ratePound);
 
       // Determine status
-      const scheduledDateTime = getScheduledDateTime(startTime, scheduledWeekDay, scheduledTime);
+      const scheduledDateTime = getScheduledDateTime(date, scheduledTime);
       const threeMinutesBefore = scheduledDateTime.clone().subtract(3, 'minutes');
 
       let status = 'Not attended';
@@ -238,7 +213,7 @@ app.post('/webhook', (req, res) => {
 function saveAttendanceRecord(record, email) {
   const monthYear = moment(record.date).format('MMMM YYYY');
   const sanitizedEmail = email.replace(/[/\\?%*:|"<>]/g, '-'); // Replace illegal filename characters
-  const csvFilePath = `${sanitizedEmail} - ${monthYear}.csv`;
+  const csvFilePath = path.join(reportsDir, `${sanitizedEmail} - ${monthYear}.csv`);
 
   // Define CSV headers
   const csvHeaders = [
@@ -314,7 +289,7 @@ nodeCron.schedule('0 23 * * *', () => {
     // Get all CSV files for the current month
     const currentMonth = today.format('MMMM YYYY');
 
-    fs.readdir('.', (err, files) => {
+    fs.readdir(reportsDir, (err, files) => {
       if (err) {
         return console.error('Error reading directory:', err);
       }
@@ -332,7 +307,7 @@ nodeCron.schedule('0 23 * * *', () => {
       // Attach all CSV files and send email to IT
       const attachments = csvFiles.map((filename) => ({
         filename,
-        path: `./${filename}`,
+        path: path.join(reportsDir, filename),
       }));
 
       const mailOptions = {
@@ -355,7 +330,52 @@ nodeCron.schedule('0 23 * * *', () => {
   }
 });
 
+// Function to schedule checks for today's courses
+function scheduleCourseChecks() {
+  const today = moment().tz('Europe/London').format('dddd');
+  const currentDate = moment().tz('Europe/London').format('YYYY-MM-DD');
+
+  courses.forEach((course) => {
+    if (course.scheduled_week_day === today) {
+      const scheduledTime = course.scheduled_time;
+      const scheduledDateTime = getScheduledDateTime(currentDate, scheduledTime);
+      const checkTime = scheduledDateTime.clone().subtract(3, 'minutes');
+
+      // Only schedule if the time is in the future
+      if (checkTime.isAfter(moment().tz('Europe/London'))) {
+        const cronExpression = `${checkTime.minute()} ${checkTime.hour()} ${checkTime.date()} ${checkTime.month() + 1} *`;
+
+        nodeCron.schedule(cronExpression, () => {
+          console.log(`Checking if course "${course.course_name}" has been started by the host.`);
+
+          // Check if the meeting has been started
+          const meetingStarted = Object.values(ongoingMeetings).some(
+            (meeting) => meeting.topic === course.course_name
+          );
+
+          if (!meetingStarted) {
+            // Send email to IT if host hasn't started the course
+            const email = course.teacher_name; // Using teacher_name as email if host email is not available
+            sendEmailToIT({
+              subject: `Host Did Not Start Course - ${course.course_name}`,
+              text: `The host (${email}) did not start the course "${course.course_name}" 3 minutes before the scheduled time.`,
+            });
+          }
+        });
+      }
+    }
+  });
+}
+
+// Schedule the course checks every day at 00:05 AM to set up checks for the day
+nodeCron.schedule('5 0 * * *', () => {
+  console.log('Scheduling course checks for today...');
+  scheduleCourseChecks();
+});
+
 // Start the server
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
+  // Schedule today's course checks when the server starts
+  scheduleCourseChecks();
 });
