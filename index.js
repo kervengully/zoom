@@ -122,6 +122,9 @@ app.post('/webhook', (req, res) => {
     const startTime = payload.object.start_time;
     const hostEmail = payload.object.host_email || null; // Handle undefined host_email
 
+    // **Added console log for meeting.started payload**
+    console.log('meeting.started payload:', payload);
+
     // Store the start time, topic, and host email of the meeting
     ongoingMeetings[meetingId] = {
       topic,
@@ -144,6 +147,9 @@ app.post('/webhook', (req, res) => {
   else if (event === 'meeting.ended') {
     const meetingId = payload.object.id;
     const endTime = payload.object.end_time;
+
+    // **Added console log for meeting.ended payload**
+    console.log('meeting.ended payload:', payload);
 
     if (ongoingMeetings[meetingId]) {
       const { topic, startTime, hostEmail } = ongoingMeetings[meetingId];
