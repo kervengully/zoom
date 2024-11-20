@@ -131,13 +131,13 @@ app.post('/webhook', (req, res) => {
 
     console.log(`Meeting started: ID ${meetingId}, Topic: ${topic}`);
 
-    // Emit event to clients
-    io.emit('meetingStarted', {
-      meetingId,
-      topic,
-      startTime,
-      hostEmail,
-    });
+    // Emit event to clients (optional)
+    // io.emit('meetingStarted', {
+    //   meetingId,
+    //   topic,
+    //   startTime,
+    //   hostEmail,
+    // });
 
   }
   // Handle meeting.ended event
@@ -226,11 +226,18 @@ app.post('/webhook', (req, res) => {
       // Save to CSV file specific to the host's email (or teacher name) and month
       saveAttendanceRecord(attendanceRecord, email);
 
-      // Add to today's attendance records
+      // Update today's attendance records
       const today = moment().tz('Europe/London').format('YYYY-MM-DD');
       if (attendanceRecord.date === today) {
-        // Remove any existing record for the same meeting_id
-        todaysAttendanceRecords = todaysAttendanceRecords.filter(record => record.meeting_id !== meetingId);
+        // Remove any existing record for the same course
+        todaysAttendanceRecords = todaysAttendanceRecords.filter(
+          (record) =>
+            !(
+              record.course_name === course.course_name &&
+              record.scheduled_week_day === course.week_day &&
+              record.scheduled_time === course.scheduled_time
+            )
+        );
         todaysAttendanceRecords.push(attendanceRecord);
       }
 
@@ -323,6 +330,34 @@ function sendEmailToIT({ subject, text }) {
   });
 }
 
+// Function to initialize today's attendance records
+function initializeTodaysAttendance() {
+  const today = moment().tz('Europe/London').format('dddd');
+  const currentDate = moment().tz('Europe/London').format('YYYY-MM-DD');
+
+  // Filter today's courses
+  const todaysCourses = courses.filter(course => course.week_day === today);
+
+  todaysAttendanceRecords = todaysCourses.map(course => ({
+    teacher_name: course.teacher_name,
+    email: course.teacher_name, // Using teacher_name as email if host email is not available
+    course_name: course.course_name,
+    meeting_id: 'N/A',
+    scheduled_week_day: course.week_day,
+    attended_week_day: 'N/A',
+    date: currentDate,
+    scheduled_time: course.scheduled_time,
+    entered_time: 'N/A',
+    finished_time: 'N/A',
+    total_time: 0,
+    rate_pound: course.rate_pound,
+    rate_formula: (course.rate_pound / 40).toFixed(2),
+    calculated_payment: '0.00',
+    approved_payment: '0.00',
+    status: 'Scheduled',
+  }));
+}
+
 // Schedule a task to run every day at 23:00
 nodeCron.schedule('0 23 * * *', () => {
   console.log('Daily check for last day of the month at 23:00...');
@@ -375,7 +410,7 @@ nodeCron.schedule('0 23 * * *', () => {
 
       transporter.sendMail(mailOptions, (error, info) => {
         if (error) {
-          return console.error('Error sending monthly email:', error);
+          return console.error('Error sending email:', error);
         }
         console.log('Monthly email sent:', info.response);
       });
@@ -439,7 +474,16 @@ function scheduleCourseChecks() {
               status: 'Not attended',
             };
 
-            // Add to today's attendance records
+            // Remove any existing record for the same course
+            todaysAttendanceRecords = todaysAttendanceRecords.filter(
+              (record) =>
+                !(
+                  record.course_name === course.course_name &&
+                  record.scheduled_week_day === course.week_day &&
+                  record.scheduled_time === course.scheduled_time
+                )
+            );
+
             todaysAttendanceRecords.push(attendanceRecord);
 
             // Emit event to clients
@@ -450,12 +494,6 @@ function scheduleCourseChecks() {
     }
   });
 }
-
-// Schedule the course checks every day at 00:05 AM to set up checks for the day
-nodeCron.schedule('5 0 * * *', () => {
-  console.log('Scheduling course checks for today...');
-  scheduleCourseChecks();
-});
 
 // Socket.io connection handler
 io.on('connection', (socket) => {
@@ -472,6 +510,21 @@ io.on('connection', (socket) => {
 // Start the server
 server.listen(port, () => {
   console.log(`Server is running on port ${port}`);
-  // Schedule today's course checks when the server starts
-  scheduleCourseChecks();
+
+  // Initialize today's attendance records when the server starts
+  initializeTodaysAttendance();
+
+  // If the server starts before 00:05 AM, schedule course checks for today
+  const now = moment().tz('Europe/London');
+  if (now.hour() >= 0 && now.hour() < 1) {
+    console.log('Scheduling course checks for today...');
+    scheduleCourseChecks();
+  }
+
+  // Starting from the next day, schedule the course checks every day at 00:05 AM
+  nodeCron.schedule('5 0 * * *', () => {
+    console.log('Scheduling course checks for today...');
+    initializeTodaysAttendance(); // Re-initialize today's attendance records
+    scheduleCourseChecks();
+  });
 });

@@ -9,7 +9,14 @@ function renderTable() {
 
   attendanceRecords.forEach(record => {
     const tr = document.createElement('tr');
-    tr.classList.add(record.status === 'Attended' ? 'attended' : 'not-attended');
+
+    if (record.status === 'Attended') {
+      tr.classList.add('attended');
+    } else if (record.status === 'Not attended') {
+      tr.classList.add('not-attended');
+    } else if (record.status === 'Scheduled') {
+      tr.classList.add('scheduled');
+    }
 
     tr.innerHTML = `
       <td>${record.teacher_name}</td>
@@ -42,13 +49,15 @@ socket.on('initialData', data => {
 
 // Handle attendance updates
 socket.on('attendanceUpdated', record => {
-  // Remove any existing record with the same meeting_id
-  attendanceRecords = attendanceRecords.filter(r => r.meeting_id !== record.meeting_id);
+  // Remove any existing record for the same course
+  attendanceRecords = attendanceRecords.filter(
+    r =>
+      !(
+        r.course_name === record.course_name &&
+        r.scheduled_week_day === record.scheduled_week_day &&
+        r.scheduled_time === record.scheduled_time
+      )
+  );
   attendanceRecords.push(record);
   renderTable();
-});
-
-// Handle meeting started (optional, if you want to show meetings that have just started)
-socket.on('meetingStarted', data => {
-  // You can implement additional logic here if needed
 });

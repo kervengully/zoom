@@ -546,7 +546,7 @@
     },
     {
       "course_id": 69,
-      "course_name": "A level Computer Science Heritage",
+      "course_name": "A Level Computer Science Heritage",
       "teacher_name": "Mihai Niculae",
       "week_day": "Monday",
       "scheduled_time": "11:00",
@@ -554,7 +554,7 @@
     },
     {
       "course_id": 70,
-      "course_name": "A level Computer Science Heritage",
+      "course_name": "A Level Computer Science Heritage",
       "teacher_name": "Mihai Niculae",
       "week_day": "Wednesday",
       "scheduled_time": "13:00",
@@ -562,7 +562,7 @@
     },
     {
       "course_id": 71,
-      "course_name": "A level Computer Science Heritage",
+      "course_name": "A Level Computer Science Heritage",
       "teacher_name": "Mihai Niculae",
       "week_day": "Friday",
       "scheduled_time": "10:15",
