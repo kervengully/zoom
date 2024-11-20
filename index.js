@@ -9,9 +9,15 @@ const nodeCron = require('node-cron');
 const nodemailer = require('nodemailer');
 const { createObjectCsvWriter } = require('csv-writer');
 const path = require('path');
+const http = require('http'); // Required for Socket.io
+const socketIo = require('socket.io'); // Socket.io for real-time updates
 
 const app = express();
 const port = process.env.PORT || 3600;
+
+// Create HTTP server and initialize Socket.io
+const server = http.createServer(app);
+const io = socketIo(server);
 
 app.use(express.json());
 
@@ -36,6 +42,9 @@ try {
 
 // In-memory store for ongoing meetings
 const ongoingMeetings = {};
+
+// In-memory store for today's attendance records
+let todaysAttendanceRecords = [];
 
 // Helper functions
 function parseISOTime(timeStr) {
@@ -68,6 +77,9 @@ const transporter = nodemailer.createTransport({
     pass: process.env.SMTP_PASS,
   },
 });
+
+// Serve static files from the 'public' directory
+app.use(express.static('public'));
 
 // Endpoint for Zoom webhook events
 app.post('/webhook', (req, res) => {
@@ -118,6 +130,15 @@ app.post('/webhook', (req, res) => {
     };
 
     console.log(`Meeting started: ID ${meetingId}, Topic: ${topic}`);
+
+    // Emit event to clients
+    io.emit('meetingStarted', {
+      meetingId,
+      topic,
+      startTime,
+      hostEmail,
+    });
+
   }
   // Handle meeting.ended event
   else if (event === 'meeting.ended') {
@@ -127,53 +148,51 @@ app.post('/webhook', (req, res) => {
     if (ongoingMeetings[meetingId]) {
       const { topic, startTime, hostEmail } = ongoingMeetings[meetingId];
 
-      // Match meeting with course
-      const course = courses.find((c) => c.course_name === topic);
-
-      if (!course) {
-        console.error(`No course found for course_name: ${topic}`);
-        delete ongoingMeetings[meetingId];
-        return res.status(200).json({ message: 'No matching course found.' });
-      }
-
-      const teacherName = course.teacher_name;
-
-      // Use teacherName if hostEmail is undefined
-      const email = hostEmail || teacherName;
-
       // Meeting times and calculations
       const enteredTimeDt = parseISOTime(startTime);
       const finishedTimeDt = parseISOTime(endTime);
       const totalTime = computeTotalMinutes(enteredTimeDt, finishedTimeDt);
-
-      const scheduledWeekDay = course.scheduled_week_day;
-      const scheduledTime = course.scheduled_time;
-      const ratePound = course.rate_pound;
 
       const attendedWeekDay = getWeekdayName(enteredTimeDt);
       const date = enteredTimeDt.format('YYYY-MM-DD');
       const enteredTime = enteredTimeDt.format('HH:mm');
       const finishedTime = finishedTimeDt.format('HH:mm');
 
+      // Find the matching course(s) for the attended day and time
+      const matchingCourses = courses.filter(
+        (c) =>
+          c.course_name === topic &&
+          c.week_day === attendedWeekDay &&
+          c.scheduled_time === enteredTime
+      );
+
+      if (matchingCourses.length === 0) {
+        console.error(`No matching course found for course_name: ${topic} on ${attendedWeekDay} at ${enteredTime}`);
+        delete ongoingMeetings[meetingId];
+        return res.status(200).json({ message: 'No matching course found.' });
+      }
+
+      // Assuming only one matching course
+      const course = matchingCourses[0];
+
+      const teacherName = course.teacher_name;
+
+      // Use teacherName if hostEmail is undefined
+      const email = hostEmail || teacherName;
+
+      const ratePound = course.rate_pound;
+
       const rateFormula = ratePound / 40;
       const calculatedPayment = rateFormula * totalTime;
       const approvedPayment = Math.min(calculatedPayment, ratePound);
 
       // Determine status
-      const scheduledDateTime = getScheduledDateTime(date, scheduledTime);
+      const scheduledDateTime = getScheduledDateTime(date, course.scheduled_time);
       const threeMinutesBefore = scheduledDateTime.clone().subtract(3, 'minutes');
 
       let status = 'Not attended';
 
-      // Check if Scheduled Week Day and Attended Week Day match
-      if (scheduledWeekDay !== attendedWeekDay) {
-        status = 'Not attended';
-        // Commented out emailing Weekday Mismatch Alert
-        // sendEmailToIT({
-        //   subject: `Weekday Mismatch Alert - ${topic}`,
-        //   text: `The course "${topic}" was scheduled for ${scheduledWeekDay}, but was attended on ${attendedWeekDay}.`,
-        // });
-      } else if (enteredTimeDt.isSameOrBefore(threeMinutesBefore)) {
+      if (enteredTimeDt.isSameOrBefore(threeMinutesBefore)) {
         status = 'Attended';
       } else {
         status = 'Not attended';
@@ -190,10 +209,10 @@ app.post('/webhook', (req, res) => {
         email: email, // Use email variable
         course_name: topic,
         meeting_id: meetingId,
-        scheduled_week_day: scheduledWeekDay,
+        scheduled_week_day: course.week_day,
         attended_week_day: attendedWeekDay,
         date,
-        scheduled_time: scheduledTime,
+        scheduled_time: course.scheduled_time,
         entered_time: enteredTime,
         finished_time: finishedTime,
         total_time: totalTime,
@@ -206,6 +225,17 @@ app.post('/webhook', (req, res) => {
 
       // Save to CSV file specific to the host's email (or teacher name) and month
       saveAttendanceRecord(attendanceRecord, email);
+
+      // Add to today's attendance records
+      const today = moment().tz('Europe/London').format('YYYY-MM-DD');
+      if (attendanceRecord.date === today) {
+        // Remove any existing record for the same meeting_id
+        todaysAttendanceRecords = todaysAttendanceRecords.filter(record => record.meeting_id !== meetingId);
+        todaysAttendanceRecords.push(attendanceRecord);
+      }
+
+      // Emit event to clients
+      io.emit('attendanceUpdated', attendanceRecord);
 
       // Remove the meeting from ongoing meetings
       delete ongoingMeetings[meetingId];
@@ -361,7 +391,7 @@ function scheduleCourseChecks() {
   const currentDate = moment().tz('Europe/London').format('YYYY-MM-DD');
 
   courses.forEach((course) => {
-    if (course.scheduled_week_day === today) {
+    if (course.week_day === today) {
       const scheduledTime = course.scheduled_time;
       const scheduledDateTime = getScheduledDateTime(currentDate, scheduledTime);
       const checkTime = scheduledDateTime.clone().subtract(3, 'minutes');
@@ -371,11 +401,14 @@ function scheduleCourseChecks() {
         const cronExpression = `${checkTime.minute()} ${checkTime.hour()} ${checkTime.date()} ${checkTime.month() + 1} *`;
 
         nodeCron.schedule(cronExpression, () => {
-          console.log(`Checking if course "${course.course_name}" has been started by the host.`);
+          console.log(`Checking if course "${course.course_name}" has been started by the host at ${scheduledTime}.`);
 
           // Check if the meeting has been started
           const meetingStarted = Object.values(ongoingMeetings).some(
-            (meeting) => meeting.topic === course.course_name
+            (meeting) =>
+              meeting.topic === course.course_name &&
+              getWeekdayName(parseISOTime(meeting.startTime)) === course.week_day &&
+              parseISOTime(meeting.startTime).format('HH:mm') === scheduledTime
           );
 
           if (!meetingStarted) {
@@ -383,8 +416,34 @@ function scheduleCourseChecks() {
             const email = course.teacher_name; // Using teacher_name as email if host email is not available
             sendEmailToIT({
               subject: `Host Did Not Start Course - ${course.course_name}`,
-              text: `The host (${email}) did not start the course "${course.course_name}" 3 minutes before the scheduled time.`,
+              text: `The host (${email}) did not start the course "${course.course_name}" on ${course.week_day} at ${scheduledTime} 3 minutes before the scheduled time.`,
             });
+
+            // Update status to "Not attended" and emit to clients
+            const attendanceRecord = {
+              teacher_name: course.teacher_name,
+              email: email,
+              course_name: course.course_name,
+              meeting_id: 'N/A',
+              scheduled_week_day: course.week_day,
+              attended_week_day: 'N/A',
+              date: currentDate,
+              scheduled_time: course.scheduled_time,
+              entered_time: 'N/A',
+              finished_time: 'N/A',
+              total_time: 0,
+              rate_pound: course.rate_pound,
+              rate_formula: (course.rate_pound / 40).toFixed(2),
+              calculated_payment: '0.00',
+              approved_payment: '0.00',
+              status: 'Not attended',
+            };
+
+            // Add to today's attendance records
+            todaysAttendanceRecords.push(attendanceRecord);
+
+            // Emit event to clients
+            io.emit('attendanceUpdated', attendanceRecord);
           }
         });
       }
@@ -398,8 +457,20 @@ nodeCron.schedule('5 0 * * *', () => {
   scheduleCourseChecks();
 });
 
+// Socket.io connection handler
+io.on('connection', (socket) => {
+  console.log('A client connected');
+
+  // Send today's attendance records to the client
+  socket.emit('initialData', todaysAttendanceRecords);
+
+  socket.on('disconnect', () => {
+    console.log('A client disconnected');
+  });
+});
+
 // Start the server
-app.listen(port, () => {
+server.listen(port, () => {
   console.log(`Server is running on port ${port}`);
   // Schedule today's course checks when the server starts
   scheduleCourseChecks();
