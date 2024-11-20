@@ -14,6 +14,8 @@ function renderTable() {
       tr.classList.add('attended');
     } else if (record.status === 'Not Attended') {
       tr.classList.add('not-attended');
+    } else if (record.status === 'In Progress') {
+      tr.classList.add('in-progress');
     } else {
       tr.classList.add('scheduled');
     }
@@ -44,13 +46,15 @@ socket.on('initialData', data => {
 
 // Handle attendance updates
 socket.on('attendanceUpdated', record => {
-  if (record.course_id) {
+  if (record.course_name) {
     // Remove any existing record for the same course and date
     attendanceRecords = attendanceRecords.filter(
       r =>
         !(
-          r.course_id === record.course_id &&
-          r.today_date === record.today_date
+          r.course_name === record.course_name &&
+          r.host_id === record.host_id &&
+          r.today_date === record.today_date &&
+          r.entered_time === record.entered_time
         )
     );
     attendanceRecords.push(record);

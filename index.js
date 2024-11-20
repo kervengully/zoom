@@ -47,9 +47,6 @@ function loadCourses() {
 // In-memory store for ongoing meetings
 const ongoingMeetings = {};
 
-// In-memory store for today's attendance records
-let todaysAttendanceRecords = [];
-
 // Helper functions
 function parseISOTime(timeStr) {
   return moment.tz(timeStr, 'YYYY-MM-DDTHH:mm:ssZ', 'UTC').tz('Europe/London');
@@ -120,16 +117,16 @@ app.post('/webhook', (req, res) => {
     const meetingId = payload.object.id.toString(); // Ensure it's a string
     const topic = payload.object.topic;
     const startTime = payload.object.start_time;
-    const hostId = payload.object.host_id || null; // Handle undefined host_id
+    const hostId = payload.object.host_id || 'N/A'; // Handle undefined host_id
 
-    // Added console log for meeting.started payload
+    // Log the meeting.started payload
     console.log('meeting.started payload:', payload);
 
     // Store the start time, topic, and host id of the meeting
     ongoingMeetings[meetingId] = {
       topic,
       startTime,
-      hostId, // May be null
+      hostId,
     };
 
     console.log(`Meeting started: ID ${meetingId}, Topic: ${topic}`);
@@ -146,23 +143,19 @@ app.post('/webhook', (req, res) => {
         course.week_day === getWeekdayName(enteredTimeDt)
     );
 
-    if (!matchingCourse) {
-      console.error(`No matching course found for topic: ${topic}`);
-      return res.status(200).json({ message: 'No matching course found.' });
-    }
-
+    // Prepare attendance record
     const attendanceRecord = {
-      course_id: matchingCourse.course_id,
-      course_name: matchingCourse.course_name,
-      teacher_name: matchingCourse.teacher_name,
-      week_day: matchingCourse.week_day,
-      scheduled_time: matchingCourse.scheduled_time,
-      host_id: hostId || 'N/A',
+      course_id: matchingCourse ? matchingCourse.course_id : meetingId,
+      course_name: topic,
+      teacher_name: matchingCourse ? matchingCourse.teacher_name : 'N/A',
+      week_day: matchingCourse ? matchingCourse.week_day : getWeekdayName(enteredTimeDt),
+      scheduled_time: matchingCourse ? matchingCourse.scheduled_time : 'N/A',
+      host_id: hostId,
       today_date: todayDate,
       entered_time: enteredTime,
       finished_time: '',
       total_time: '',
-      status: '',
+      status: 'In Progress',
     };
 
     // Append to attendance.csv
@@ -176,7 +169,7 @@ app.post('/webhook', (req, res) => {
     const meetingId = payload.object.id.toString(); // Ensure it's a string
     const endTime = payload.object.end_time;
 
-    // Added console log for meeting.ended payload
+    // Log the meeting.ended payload
     console.log('meeting.ended payload:', payload);
 
     if (ongoingMeetings[meetingId]) {
@@ -198,34 +191,71 @@ app.post('/webhook', (req, res) => {
           course.week_day === getWeekdayName(enteredTimeDt)
       );
 
-      if (!matchingCourse) {
-        console.error(`No matching course found for topic: ${topic}`);
-        delete ongoingMeetings[meetingId];
-        return res.status(200).json({ message: 'No matching course found.' });
-      }
-
-      // Update attendance.csv
-      updateAttendanceCSV({
-        course_id: matchingCourse.course_id,
-        course_name: matchingCourse.course_name,
-        teacher_name: matchingCourse.teacher_name,
-        week_day: matchingCourse.week_day,
-        scheduled_time: matchingCourse.scheduled_time,
-        host_id: hostId || 'N/A',
+      // Prepare updated attendance record
+      const updatedRecord = {
+        course_id: matchingCourse ? matchingCourse.course_id : meetingId,
+        course_name: topic,
+        teacher_name: matchingCourse ? matchingCourse.teacher_name : 'N/A',
+        week_day: matchingCourse ? matchingCourse.week_day : getWeekdayName(enteredTimeDt),
+        scheduled_time: matchingCourse ? matchingCourse.scheduled_time : 'N/A',
+        host_id: hostId,
         today_date: todayDate,
         entered_time: enteredTime,
         finished_time: finishedTime,
-        total_time: totalTime,
+        total_time: totalTime.toString(),
         status: '',
-      });
+      };
+
+      // Update attendance.csv
+      updateAttendanceCSV(updatedRecord);
 
       // Remove from ongoing meetings
       delete ongoingMeetings[meetingId];
 
       // Emit event to clients
-      io.emit('attendanceUpdated', {});
+      io.emit('attendanceUpdated', updatedRecord);
     } else {
       console.error(`No ongoing meeting found for ID: ${meetingId}`);
+
+      // Meeting was not recorded in ongoingMeetings, but we still need to save it
+
+      const enteredTimeDt = parseISOTime(payload.object.start_time);
+      const finishedTimeDt = parseISOTime(endTime);
+      const totalTime = computeTotalMinutes(enteredTimeDt, finishedTimeDt);
+
+      const todayDate = enteredTimeDt.format('YYYY-MM-DD');
+      const enteredTime = enteredTimeDt.format('HH:mm');
+      const finishedTime = finishedTimeDt.format('HH:mm');
+      const topic = payload.object.topic;
+      const hostId = payload.object.host_id || 'N/A';
+
+      // Find matching course
+      const matchingCourse = courses.find(
+        (course) =>
+          course.course_name === topic &&
+          course.week_day === getWeekdayName(enteredTimeDt)
+      );
+
+      // Prepare attendance record
+      const attendanceRecord = {
+        course_id: matchingCourse ? matchingCourse.course_id : meetingId,
+        course_name: topic,
+        teacher_name: matchingCourse ? matchingCourse.teacher_name : 'N/A',
+        week_day: matchingCourse ? matchingCourse.week_day : getWeekdayName(enteredTimeDt),
+        scheduled_time: matchingCourse ? matchingCourse.scheduled_time : 'N/A',
+        host_id: hostId,
+        today_date: todayDate,
+        entered_time: enteredTime,
+        finished_time: finishedTime,
+        total_time: totalTime.toString(),
+        status: '',
+      };
+
+      // Append to attendance.csv
+      appendToAttendanceCSV(attendanceRecord);
+
+      // Emit event to clients
+      io.emit('attendanceUpdated', attendanceRecord);
     }
   } else {
     console.log(`Unhandled event type: ${event}`);
@@ -269,12 +299,15 @@ function updateAttendanceCSV(updatedRecord) {
     .pipe(csvParser())
     .on('data', (data) => {
       if (
-        data.course_id === updatedRecord.course_id &&
-        data.today_date === updatedRecord.today_date
+        data.course_name === updatedRecord.course_name &&
+        data.host_id === updatedRecord.host_id &&
+        data.today_date === updatedRecord.today_date &&
+        data.entered_time === updatedRecord.entered_time
       ) {
         // Update the record
         data.finished_time = updatedRecord.finished_time;
         data.total_time = updatedRecord.total_time;
+        data.status = updatedRecord.status;
       }
       records.push(data);
     })
@@ -334,7 +367,7 @@ function checkAttendance() {
               .on('end', () => {
                 const matchingRecord = records.find(
                   (record) =>
-                    record.course_id === course.course_id.toString() &&
+                    record.course_name === course.course_name &&
                     record.today_date === today
                 );
 
@@ -388,7 +421,7 @@ function checkAttendance() {
                   ];
 
                   const updatedRecords = records.map((record) =>
-                    record.course_id === matchingRecord.course_id &&
+                    record.course_name === matchingRecord.course_name &&
                     record.today_date === matchingRecord.today_date
                       ? matchingRecord
                       : record
@@ -484,7 +517,11 @@ function generateTeacherReports() {
       fs.createReadStream(attendanceCsvPath)
         .pipe(csvParser())
         .on('data', (data) => {
-          records.push(data);
+          // Filter records for the current month
+          const recordDate = moment(data.today_date, 'YYYY-MM-DD');
+          if (recordDate.format('MMMM YYYY') === currentMonthYear) {
+            records.push(data);
+          }
         })
         .on('end', () => {
           // Group records by teacher_name
@@ -573,12 +610,15 @@ function sendAttendanceDataToClient(socket) {
 }
 
 // Schedule tasks
+
+// Load courses and check attendance every day at 03:00
 nodeCron.schedule('0 3 * * *', () => {
   console.log('Loading courses and checking attendance at 03:00...');
   loadCourses();
   checkAttendance();
 });
 
+// Generate teacher reports at 23:00 on the last day of the month
 nodeCron.schedule('0 23 * * *', () => {
   console.log('Daily check at 23:00...');
   generateTeacherReports();
