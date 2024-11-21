@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const schedule = require('node-schedule');
 const nodemailer = require('nodemailer');
-const { format } = require('date-fns');
+const { format, differenceInMinutes, parseISO } = require('date-fns');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -26,7 +26,7 @@ app.use(express.json());
 // Ensure the CSV file exists and has headers
 if (!fs.existsSync(csvFilePath)) {
     console.log('Attendance file does not exist. Creating it...');
-    fs.writeFileSync(csvFilePath, 'id,topic,host_id,start_time,end_time,host_name,rate_pound\n');
+    fs.writeFileSync(csvFilePath, 'id,topic,host_id,start_time,end_time,total_time,host_name,rate_pound\n');
     console.log('Attendance file created successfully.');
 } else {
     console.log('Attendance file exists. Proceeding...');
@@ -70,13 +70,14 @@ const updateHostNameInAttendance = (course) => {
     console.log(`Checking attendance for course: ${course.topic} at ${course.scheduled_time}`);
     try {
         const attendanceData = fs.readFileSync(csvFilePath, 'utf8').split('\n').slice(1).map(line => {
-            const [id, topic, host_id, start_time, end_time, host_name, rate_pound] = line.split(',');
+            const [id, topic, host_id, start_time, end_time, total_time, host_name, rate_pound] = line.split(',');
             return {
                 id: id?.trim(),
                 topic: topic?.trim(),
                 host_id: host_id?.trim(),
                 start_time: start_time?.trim(),
                 end_time: end_time?.trim(),
+                total_time: total_time?.trim(),
                 host_name: host_name?.trim(),
                 rate_pound: rate_pound?.trim(),
             };
@@ -93,9 +94,9 @@ const updateHostNameInAttendance = (course) => {
 
         if (updated) {
             const updatedCSVData = [
-                'id,topic,host_id,start_time,end_time,host_name,rate_pound',
+                'id,topic,host_id,start_time,end_time,total_time,host_name,rate_pound',
                 ...updatedData.map(meeting =>
-                    `${meeting.id},${meeting.topic},${meeting.host_id},${meeting.start_time},${meeting.end_time},${meeting.host_name},${meeting.rate_pound}`
+                    `${meeting.id},${meeting.topic},${meeting.host_id},${meeting.start_time},${meeting.end_time},${meeting.total_time},${meeting.host_name},${meeting.rate_pound}`
                 ),
             ].join('\n');
 
@@ -114,13 +115,14 @@ const updateRatePoundInAttendance = (course) => {
     console.log(`Checking attendance for course: ${course.topic} at ${course.scheduled_time}`);
     try {
         const attendanceData = fs.readFileSync(csvFilePath, 'utf8').split('\n').slice(1).map(line => {
-            const [id, topic, host_id, start_time, end_time, host_name, rate_pound] = line.split(',');
+            const [id, topic, host_id, start_time, end_time, total_time, host_name, rate_pound] = line.split(',');
             return {
                 id: id?.trim(),
                 topic: topic?.trim(),
                 host_id: host_id?.trim(),
                 start_time: start_time?.trim(),
                 end_time: end_time?.trim(),
+                total_time: total_time?.trim(),
                 host_name: host_name?.trim(),
                 rate_pound: rate_pound?.trim(),
             };
@@ -137,9 +139,9 @@ const updateRatePoundInAttendance = (course) => {
 
         if (updated) {
             const updatedCSVData = [
-                'id,topic,host_id,start_time,end_time,host_name,rate_pound',
+                'id,topic,host_id,start_time,end_time,total_time,host_name,rate_pound',
                 ...updatedData.map(meeting =>
-                    `${meeting.id},${meeting.topic},${meeting.host_id},${meeting.start_time},${meeting.end_time},${meeting.host_name},${meeting.rate_pound}`
+                    `${meeting.id},${meeting.topic},${meeting.host_id},${meeting.start_time},${meeting.end_time},${meeting.total_time},${meeting.host_name},${meeting.rate_pound}`
                 ),
             ].join('\n');
 
@@ -206,7 +208,7 @@ app.post('/webhook', (req, res) => {
             host_id: payload.host_id,
             start_time: payload.start_time,
         };
-        fs.appendFileSync(csvFilePath, `${meetingData.id},${meetingData.topic},${meetingData.host_id},${meetingData.start_time},,,\n`);
+        fs.appendFileSync(csvFilePath, `${meetingData.id},${meetingData.topic},${meetingData.host_id},${meetingData.start_time},,,, \n`);
         console.log('Meeting started data saved successfully.');
         res.status(200).send('Meeting started logged');
     } else if (event === 'meeting.ended') {
@@ -225,21 +227,25 @@ app.post('/webhook', (req, res) => {
         const updatedData = csvData.map(line => {
             const fields = line.split(',');
             if (fields[0] === meetingId && fields[3] === startTime && !fields[4]) {
-                fields[4] = endTime;
+                fields[4] = end_time;
+                const start = parseISO(startTime);
+                const end = parseISO(endTime);
+                const totalTime = differenceInMinutes(end, start);
+                fields[5] = totalTime; // Update total_time column
                 return fields.join(',');
             }
             return line;
         }).join('\n');
 
         fs.writeFileSync(csvFilePath, updatedData);
-        console.log('Meeting ended data updated successfully.');
+        console.log(`Meeting ended data updated successfully for ID: ${meetingId}. Total time: ${differenceInMinutes(parseISO(endTime), parseISO(startTime))} minutes.`);
         res.status(200).send('Meeting ended logged');
     } else {
-      console.log(`Unhandled event type: ${event}`);
-      res.status(400).send('Event not handled');
-  }
+        console.log(`Unhandled event type: ${event}`);
+        res.status(400).send('Event not handled');
+    }
 });
 
 app.listen(port, () => {
-  console.log(`Zoom webhook listener running on port ${port}`);
+    console.log(`Zoom webhook listener running on port ${port}`);
 });
