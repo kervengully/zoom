@@ -31,29 +31,36 @@ const validateZoomWebhook = (req) => {
     return signature === req.headers['x-zm-signature'];
 };
 
-// Save meeting data to CSV
+// Save meeting started data to CSV
 const saveMeetingToCSV = (data) => {
-    console.log(`Saving meeting started data for ID: ${data.id}`);
+    console.log(`Saving meeting started data for ID: ${data.id} at start time: ${data.start_time}`);
     const csvData = `${data.id},${data.topic},${data.host_id},${data.start_time || ''},${data.end_time || ''}\n`;
     fs.appendFileSync(csvFilePath, csvData);
     console.log('Meeting started data saved successfully.');
 };
 
-// Update meeting end time in CSV
-const updateMeetingEndTimeInCSV = (id, endTime) => {
-    console.log(`Updating meeting ended data for ID: ${id}`);
+// Update meeting end time in CSV for the corresponding meeting occurrence
+const updateMeetingEndTimeInCSV = (id, startTime, endTime) => {
+    console.log(`Updating meeting ended data for ID: ${id} with start time: ${startTime}`);
     const csvData = fs.readFileSync(csvFilePath, 'utf8').split('\n');
+    let updated = false;
     const updatedData = csvData.map((line) => {
         const fields = line.split(',');
-        if (fields[0] === id) {
+        if (fields[0] === id && fields[3] === startTime && !fields[4]) {
             fields[4] = endTime;
-            console.log(`End time updated for meeting ID: ${id}`);
+            updated = true;
+            console.log(`End time updated for meeting ID: ${id} at start time: ${startTime}`);
             return fields.join(',');
         }
         return line;
     }).join('\n');
-    fs.writeFileSync(csvFilePath, updatedData);
-    console.log('Meeting ended data updated successfully.');
+
+    if (updated) {
+        fs.writeFileSync(csvFilePath, updatedData);
+        console.log('Meeting ended data updated successfully.');
+    } else {
+        console.log('No matching meeting occurrence found to update.');
+    }
 };
 
 app.post('/webhook', (req, res) => {
@@ -91,14 +98,15 @@ app.post('/webhook', (req, res) => {
     } else if (event === 'meeting.ended') {
         console.log('Meeting ended event received.');
 
-        if (!payload.id || !payload.end_time) {
+        if (!payload.id || !payload.start_time || !payload.end_time) {
             console.log('Invalid payload: Missing required fields for meeting.ended.');
             return res.status(400).send('Invalid payload for meeting.ended');
         }
 
         const meetingId = payload.id;
+        const startTime = payload.start_time;
         const endTime = payload.end_time;
-        updateMeetingEndTimeInCSV(meetingId, endTime);
+        updateMeetingEndTimeInCSV(meetingId, startTime, endTime);
         res.status(200).send('Meeting ended logged');
     } else {
         console.log(`Unhandled event type: ${event}`);
