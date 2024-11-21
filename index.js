@@ -6,7 +6,6 @@ const path = require('path');
 const schedule = require('node-schedule');
 const nodemailer = require('nodemailer');
 const { format } = require('date-fns');
-const { parse } = require('date-fns-tz');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -72,8 +71,13 @@ const checkMeetingAttendance = async (course) => {
     try {
         const attendanceData = fs.readFileSync(csvFilePath, 'utf8').split('\n').slice(1).map(line => {
             const [id, topic, host_id, start_time] = line.split(',');
-            return { id, topic: topic.trim(), host_id, start_time: start_time.trim() };
-        });
+            return {
+                id: id?.trim(),
+                topic: topic?.trim(),
+                host_id: host_id?.trim(),
+                start_time: start_time?.trim(),
+            };
+        }).filter(meeting => meeting.topic && meeting.start_time); // Filter out incomplete rows
 
         // Compare topics to check if the meeting has started
         const meetingExists = attendanceData.some(meeting => meeting.topic === course.topic);
