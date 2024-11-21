@@ -76,7 +76,7 @@ function initializeCSV() {
 initializeCSV();
 
 // Route to handle Zoom webhooks
-app.post('/zoom/webhook', (req, res, next) => {
+app.post('/webhook', (req, res, next) => {
   const { event, payload } = req.body;
 
   console.log(`Received event: ${event}`);
