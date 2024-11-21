@@ -32,10 +32,10 @@ const CSV_FILE_PATH = 'attendance.csv';
 
 // Function to verify Zoom webhook requests using HMAC
 function verifyZoomRequest(req, res, next) {
-  const signature = req.headers['x-zm-signature'];
+  const signatureHeader = req.headers['x-zm-signature'];
   const timestamp = req.headers['x-zm-request-timestamp'];
 
-  if (!signature || !timestamp) {
+  if (!signatureHeader || !timestamp) {
     console.error('Unauthorized - Missing headers');
     return res.status(401).send('Unauthorized - Missing headers');
   }
@@ -47,10 +47,18 @@ function verifyZoomRequest(req, res, next) {
     return res.status(401).send('Unauthorized - Request too old');
   }
 
-  const message = timestamp + req.rawBody;
+  // Extract the version and the signature
+  const [version, signature] = signatureHeader.split('=');
+  if (version !== 'v0') {
+    console.error('Unauthorized - Invalid version');
+    return res.status(401).send('Unauthorized - Invalid version');
+  }
+
+  const message = timestamp + ':' + req.rawBody;
+
   const hmac = crypto.createHmac('sha256', ZOOM_SECRET_TOKEN);
   hmac.update(message);
-  const computedSignature = hmac.digest('hex');
+  const computedSignature = hmac.digest('base64');
 
   if (signature === computedSignature) {
     next();
@@ -76,7 +84,7 @@ function initializeCSV() {
 initializeCSV();
 
 // Route to handle Zoom webhooks
-app.post('/webhook', (req, res, next) => {
+app.post('/zoom/webhook', (req, res, next) => {
   const { event, payload } = req.body;
 
   console.log(`Received event: ${event}`);
