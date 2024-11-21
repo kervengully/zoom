@@ -1,580 +1,676 @@
 {
   "courses": [
-      {
-        "topic": "Year 13 - Computer science",
-        "host_name": "Mohammed Ghani",
-        "week_day": "Wednesday",
-        "scheduled_time": "17:00"
-      },
-      {
-        "topic": "Year 13 - Computer science",
-        "host_name": "Mohammed Ghani",
-        "week_day": "Wednesday",
-        "scheduled_time": "18:00"
-      },
-      {
-        "topic": "Lower Secondary French",
-        "host_name": "Lara Gallagher",
-        "week_day": "Monday",
-        "scheduled_time": "11:00"
-      },
-      {
-        "topic": "Ela French",
-        "host_name": "Lara Gallagher",
-        "week_day": "Thursday",
-        "scheduled_time": "11:00"
-      },
-      {
-        "topic": "A Level History",
-        "host_name": "John Belsey",
-        "week_day": "Monday",
-        "scheduled_time": "17:00"
-      },
-      {
-        "topic": "A Level History",
-        "host_name": "John Belsey",
-        "week_day": "Monday",
-        "scheduled_time": "18:00"
-      },
-      {
-        "topic": "IGCSE Geography",
-        "host_name": "John Belsey",
-        "week_day": "Monday",
-        "scheduled_time": "12:00"
-      },
-      {
-        "topic": "Turkish Omer",
-        "host_name": "Yilmaz Ucak",
-        "week_day": "Monday",
-        "scheduled_time": "12:00"
-      },
-      {
-        "topic": "Turkish Omer",
-        "host_name": "Yilmaz Ucak",
-        "week_day": "Wednesday",
-        "scheduled_time": "11:00"
-      },
-      {
-        "topic": "Turkish Omer",
-        "host_name": "Yilmaz Ucak",
-        "week_day": "Thursday",
-        "scheduled_time": "13:00"
-      },
-      {
-        "topic": "Sociology King's Oak School",
-        "host_name": "Danielle Babatunde",
-        "week_day": "Monday",
-        "scheduled_time": "08:40"
-      },
-      {
-        "topic": "Sociology King's Oak School",
-        "host_name": "Danielle Babatunde",
-        "week_day": "Monday",
-        "scheduled_time": "09:35"
-      },
-      {
-        "topic": "Sociology King's Oak School",
-        "host_name": "Danielle Babatunde",
-        "week_day": "Tuesday",
-        "scheduled_time": "06:30"
-      },
-      {
-        "topic": "Sociology King's Oak School",
-        "host_name": "Danielle Babatunde",
-        "week_day": "Tuesday",
-        "scheduled_time": "09:35"
-      },
-      {
-        "topic": "Sociology King's Oak School",
-        "host_name": "Danielle Babatunde",
-        "week_day": "Wednesday",
-        "scheduled_time": "09:35"
-      },
-      {
-        "topic": "Sociology King's Oak School",
-        "host_name": "Danielle Babatunde",
-        "week_day": "Thursday",
-        "scheduled_time": "08:40"
-      },
-      {
-        "topic": "Sociology King's Oak School",
-        "host_name": "Danielle Babatunde",
-        "week_day": "Thursday",
-        "scheduled_time": "09:35"
-      },
-      {
-        "topic": "Sociology King's Oak School",
-        "host_name": "Danielle Babatunde",
-        "week_day": "Friday",
-        "scheduled_time": "09:35"
-      },
-      {
-        "topic": "A level Math",
-        "host_name": "Mihai Niculae",
-        "week_day": "Wednesday",
-        "scheduled_time": "15:00"
-      },
-      {
-        "topic": "A level Math",
-        "host_name": "Mihai Niculae",
-        "week_day": "Wednesday",
-        "scheduled_time": "16:00"
-      },
-      {
-        "topic": "A level Math",
-        "host_name": "Mihai Niculae",
-        "week_day": "Thursday",
-        "scheduled_time": "15:00"
-      },
-      {
-        "topic": "A level Math",
-        "host_name": "Mihai Niculae",
-        "week_day": "Thursday",
-        "scheduled_time": "16:00"
-      },
-      {
-        "topic": "A level Further Math",
-        "host_name": "Mihai Niculae",
-        "week_day": "Monday",
-        "scheduled_time": "17:00"
-      },
-      {
-        "topic": "A level Further Math",
-        "host_name": "Mihai Niculae",
-        "week_day": "Monday",
-        "scheduled_time": "18:00"
-      },
-      {
-        "topic": "A level Further Math",
-        "host_name": "Mihai Niculae",
-        "week_day": "Friday",
-        "scheduled_time": "16:00"
-      },
-      {
-        "topic": "A level Further Math",
-        "host_name": "Mihai Niculae",
-        "week_day": "Friday",
-        "scheduled_time": "17:00"
-      },
-      {
-        "topic": "IGCSE Biology",
-        "host_name": "Maria Mazevet",
-        "week_day": "Monday",
-        "scheduled_time": "14:00"
-      },
-      {
-        "topic": "IGCSE Biology",
-        "host_name": "Maria Mazevet",
-        "week_day": "Tuesday",
-        "scheduled_time": "14:00"
-      },
-      {
-        "topic": "IGCSE Biology",
-        "host_name": "Maria Mazevet",
-        "week_day": "Wednesday",
-        "scheduled_time": "10:00"
-      },
-      {
-        "topic": "IGCSE Chemistry",
-        "host_name": "Maria Mazevet",
-        "week_day": "Tuesday",
-        "scheduled_time": "17:00"
-      },
-      {
-        "topic": "IGCSE Chemistry",
-        "host_name": "Maria Mazevet",
-        "week_day": "Tuesday",
-        "scheduled_time": "18:00"
-      },
-      {
-        "topic": "IGCSE Chemistry",
-        "host_name": "Maria Mazevet",
-        "week_day": "Wednesday",
-        "scheduled_time": "12:00"
-      },
-      {
-        "topic": "A level Business",
-        "host_name": "Faraz Ahmad",
-        "week_day": "Monday",
-        "scheduled_time": "15:00"
-      },
-      {
-        "topic": "A level Business",
-        "host_name": "Faraz Ahmad",
-        "week_day": "Monday",
-        "scheduled_time": "16:00"
-      },
-      {
-        "topic": "A level Business",
-        "host_name": "Faraz Ahmad",
-        "week_day": "Thursday",
-        "scheduled_time": "17:00"
-      },
-      {
-        "topic": "A level Business",
-        "host_name": "Faraz Ahmad",
-        "week_day": "Thursday",
-        "scheduled_time": "18:00"
-      },
-      {
-        "topic": "Omer English",
-        "host_name": "Lori Cali",
-        "week_day": "Monday",
-        "scheduled_time": "09:00"
-      },
-      {
-        "topic": "Omer English",
-        "host_name": "Jenna Nel",
-        "week_day": "Tuesday",
-        "scheduled_time": "09:00"
-      },
-      {
-        "topic": "Omer English",
-        "host_name": "Jenna Nel",
-        "week_day": "Tuesday",
-        "scheduled_time": "10:00"
-      },
-      {
-        "topic": "Omer English",
-        "host_name": "Lori Cali",
-        "week_day": "Wednesday",
-        "scheduled_time": "09:00"
-      },
-      {
-        "topic": "Omer English",
-        "host_name": "Lori Cali",
-        "week_day": "Thursday",
-        "scheduled_time": "09:00"
-      },
-      {
-        "topic": "Omer English",
-        "host_name": "Lori Cali",
-        "week_day": "Friday",
-        "scheduled_time": "09:00"
-      },
-      {
-        "topic": "Lower Secondary English",
-        "host_name": "Nicola Hendricks",
-        "week_day": "Wednesday",
-        "scheduled_time": "13:00"
-      },
-      {
-        "topic": "Lower Secondary English",
-        "host_name": "Nicola Hendricks",
-        "week_day": "Wednesday",
-        "scheduled_time": "14:00"
-      },
-      {
-        "topic": "Lower Secondary English",
-        "host_name": "Nicola Hendricks",
-        "week_day": "Thursday",
-        "scheduled_time": "15:00"
-      },
-      {
-        "topic": "Lower Secondary Science",
-        "host_name": "Nicola Hendricks",
-        "week_day": "Monday",
-        "scheduled_time": "13:00"
-      },
-      {
-        "topic": "Lower Secondary Science",
-        "host_name": "Nicola Hendricks",
-        "week_day": "Tuesday",
-        "scheduled_time": "13:00"
-      },
-      {
-        "topic": "Lower Secondary Science",
-        "host_name": "Nicola Hendricks",
-        "week_day": "Wednesday",
-        "scheduled_time": "09:00"
-      },
-      {
-        "topic": "Lower Primary English 2",
-        "host_name": "Lori Cali",
-        "week_day": "Monday",
-        "scheduled_time": "14:00"
-      },
-      {
-        "topic": "Lower Primary English 2",
-        "host_name": "Lori Cali",
-        "week_day": "Tuesday",
-        "scheduled_time": "14:00"
-      },
-      {
-        "topic": "Lower Primary English 2",
-        "host_name": "Lori Cali",
-        "week_day": "Wednesday",
-        "scheduled_time": "15:00"
-      },
-      {
-        "topic": "Primary Math",
-        "host_name": "Jessica Mccallum",
-        "week_day": "Monday",
-        "scheduled_time": "09:00"
-      },
-      {
-        "topic": "Primary Math",
-        "host_name": "Jessica Mccallum",
-        "week_day": "Tuesday",
-        "scheduled_time": "10:00"
-      },
-      {
-        "topic": "Primary Math",
-        "host_name": "Jessica Mccallum",
-        "week_day": "Thursday",
-        "scheduled_time": "13:00"
-      },
-      {
-        "topic": "Primary Science",
-        "host_name": "Jessica Mccallum",
-        "week_day": "Monday",
-        "scheduled_time": "11:00"
-      },
-      {
-        "topic": "Primary Science",
-        "host_name": "Jessica Mccallum",
-        "week_day": "Tuesday",
-        "scheduled_time": "12:00"
-      },
-      {
-        "topic": "Primary Science",
-        "host_name": "Jessica Mccallum",
-        "week_day": "Wednesday",
-        "scheduled_time": "10:00"
-      },
-      {
-        "topic": "Primary Math DD",
-        "host_name": "Jessica Mccallum",
-        "week_day": "Wednesday",
-        "scheduled_time": "16:00"
-      },
-      {
-        "topic": "Primary Science DD",
-        "host_name": "Jessica Mccallum",
-        "week_day": "Thursday",
-        "scheduled_time": "16:00"
-      },
-      {
-        "topic": "primary English DD",
-        "host_name": "Jessica Mccallum",
-        "week_day": "Tuesday",
-        "scheduled_time": "16:00"
-      },
-      {
-        "topic": "Lower Primary English 3",
-        "host_name": "Jonny Wiliam",
-        "week_day": "Tuesday",
-        "scheduled_time": "17:00"
-      },
-      {
-        "topic": "Lower Primary English 3",
-        "host_name": "Jonny Wiliam",
-        "week_day": "Tuesday",
-        "scheduled_time": "18:00"
-      },
-      {
-        "topic": "Lower Primary Maths 3",
-        "host_name": "Jonny Wiliam",
-        "week_day": "Wednesday",
-        "scheduled_time": "17:00"
-      },
-      {
-        "topic": "Lower Primary science 3",
-        "host_name": "Jonny Wiliam",
-        "week_day": "Wednesday",
-        "scheduled_time": "18:00"
-      },
-      {
-        "topic": "Sevval math",
-        "host_name": "Tanish Chaudhry",
-        "week_day": "Friday",
-        "scheduled_time": "18:00"
-      },
-      {
-        "topic": "Bora math",
-        "host_name": "Tanish Chaudhry",
-        "week_day": "Saturday",
-        "scheduled_time": "10:00"
-      },
-      {
-        "topic": "A level Global Perspective",
-        "host_name": "James Broad",
-        "week_day": "Tuesday",
-        "scheduled_time": "17:00"
-      },
-      {
-        "topic": "A level Global Perspective",
-        "host_name": "James Broad",
-        "week_day": "Wednesday",
-        "scheduled_time": "17:00"
-      },
-      {
-        "topic": "A level Computer Science Heritage",
-        "host_name": "Mihai Niculae",
-        "week_day": "Monday",
-        "scheduled_time": "11:00"
-      },
-      {
-        "topic": "A level Computer Science Heritage",
-        "host_name": "Mihai Niculae",
-        "week_day": "Wednesday",
-        "scheduled_time": "13:00"
-      },
-      {
-        "topic": "A level Computer Science Heritage",
-        "host_name": "Mihai Niculae",
-        "week_day": "Friday",
-        "scheduled_time": "10:15"
-      },
-      {
-        "topic": "IGCSE Physics",
-        "host_name": "Matt Vickery",
-        "week_day": "Monday",
-        "scheduled_time": "17:00"
-      },
-      {
-        "topic": "IGCSE Physics",
-        "host_name": "Matt Vickery",
-        "week_day": "Monday",
-        "scheduled_time": "18:00"
-      },
-      {
-        "topic": "IGCSE Physics",
-        "host_name": "Matt Vickery",
-        "week_day": "Wednesday",
-        "scheduled_time": "11:00"
-      },
-      {
-        "topic": "A Level Physics",
-        "host_name": "Matt Vickery",
-        "week_day": "Monday",
-        "scheduled_time": "15:00"
-      },
-      {
-        "topic": "A Level Physics",
-        "host_name": "Matt Vickery",
-        "week_day": "Monday",
-        "scheduled_time": "16:00"
-      },
-      {
-        "topic": "A Level Physics",
-        "host_name": "Matt Vickery",
-        "week_day": "Tuesday",
-        "scheduled_time": "16:00"
-      },
-      {
-        "topic": "A Level Physics",
-        "host_name": "Matt Vickery",
-        "week_day": "Tuesday",
-        "scheduled_time": "16:00"
-      },
-      {
-        "topic": "Akif English",
-        "host_name": "Lori Cali",
-        "week_day": "Wednesday",
-        "scheduled_time": "09:00"
-      },
-      {
-        "topic": "Omer English",
-        "host_name": "Lori Cali",
-        "week_day": "Monday",
-        "scheduled_time": "09:00"
-      },
-      {
-        "topic": "Omer English",
-        "host_name": "Lori Cali",
-        "week_day": "Thursday",
-        "scheduled_time": "09:00"
-      },
-      {
-        "topic": "Omer English",
-        "host_name": "Lori Cali",
-        "week_day": "Friday",
-        "scheduled_time": "09:00"
-      },
-      {
-        "topic": "Primary Science",
-        "host_name": "Lori Cali",
-        "week_day": "Monday",
-        "scheduled_time": "11:00"
-      },
-      {
-        "topic": "Primary Science",
-        "host_name": "Lori Cali",
-        "week_day": "Tuesday",
-        "scheduled_time": "10:00"
-      },
-      {
-        "topic": "Primary Science",
-        "host_name": "Lori Cali",
-        "week_day": "Wednesday",
-        "scheduled_time": "12:00"
-      },
-      {
-        "topic": "Primary English DD",
-        "host_name": "Lori Cali",
-        "week_day": "Tuesday",
-        "scheduled_time": "16:00"
-      },
-      {
-        "topic": "Primary Science DD",
-        "host_name": "Lori Cali",
-        "week_day": "Thursday",
-        "scheduled_time": "15:00"
-      },
-      {
-        "topic": "Story Telling KY HZB",
-        "host_name": "Jenna Nel",
-        "week_day": "Thursday",
-        "scheduled_time": "09:40"
-      },
-      {
-        "topic": "Story Telling BK HZ",
-        "host_name": "Jenna Nel",
-        "week_day": "Wednesday",
-        "scheduled_time": "10:40"
-      },
-      {
-        "topic": "Story Telling AK CR HZ",
-        "host_name": "Jenna Nel",
-        "week_day": "Tuesday",
-        "scheduled_time": "11:00"
-      },
-      {
-        "topic": "Story Telling KY HZA",
-        "host_name": "Jenna Nel",
-        "week_day": "Thursday",
-        "scheduled_time": "10:30"
-      },
-      {
-        "topic": "Maths BK4A",
-        "host_name": "Matt Vickery",
-        "week_day": "Monday",
-        "scheduled_time": "11:10"
-      },
-      {
-        "topic": "Maths AK4A",
-        "host_name": "Matt Vickery",
-        "week_day": "Tuesday",
-        "scheduled_time": "09:35"
-      },
-      {
-        "topic": "Maths KY4B",
-        "host_name": "Matt Vickery",
-        "week_day": "Wednesday",
-        "scheduled_time": "08:20"
-      },
-      {
-        "topic": "Maths KY4A",
-        "host_name": "Matt Vickery",
-        "week_day": "Wednesday",
-        "scheduled_time": "12:05"
-      },
-      {
-        "topic": "My Meeting",
-        "host_name": "Kerven Gullyyev",
-        "week_day": "Thursday",
-        "scheduled_time": "10:58"
-      }
+    {
+      "topic": "Year 13 - Computer science",
+      "host_name": "Mohammed Ghani",
+      "week_day": "Wednesday",
+      "scheduled_time": "17:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Year 13 - Computer science",
+      "host_name": "Mohammed Ghani",
+      "week_day": "Wednesday",
+      "scheduled_time": "18:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Lower Secondary French",
+      "host_name": "Lara Gallagher",
+      "week_day": "Monday",
+      "scheduled_time": "11:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Ela French",
+      "host_name": "Lara Gallagher",
+      "week_day": "Thursday",
+      "scheduled_time": "11:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "A Level History",
+      "host_name": "John Belsey",
+      "week_day": "Monday",
+      "scheduled_time": "17:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "A Level History",
+      "host_name": "John Belsey",
+      "week_day": "Monday",
+      "scheduled_time": "18:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "IGCSE Geography",
+      "host_name": "John Belsey",
+      "week_day": "Monday",
+      "scheduled_time": "12:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Turkish Omer",
+      "host_name": "Yilmaz Ucak",
+      "week_day": "Monday",
+      "scheduled_time": "12:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Turkish Omer",
+      "host_name": "Yilmaz Ucak",
+      "week_day": "Wednesday",
+      "scheduled_time": "11:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Turkish Omer",
+      "host_name": "Yilmaz Ucak",
+      "week_day": "Thursday",
+      "scheduled_time": "13:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Sociology King's Oak School",
+      "host_name": "Danielle Babatunde",
+      "week_day": "Monday",
+      "scheduled_time": "08:40",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Sociology King's Oak School",
+      "host_name": "Danielle Babatunde",
+      "week_day": "Monday",
+      "scheduled_time": "09:35",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Sociology King's Oak School",
+      "host_name": "Danielle Babatunde",
+      "week_day": "Tuesday",
+      "scheduled_time": "06:30",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Sociology King's Oak School",
+      "host_name": "Danielle Babatunde",
+      "week_day": "Tuesday",
+      "scheduled_time": "09:35",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Sociology King's Oak School",
+      "host_name": "Danielle Babatunde",
+      "week_day": "Wednesday",
+      "scheduled_time": "09:35",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Sociology King's Oak School",
+      "host_name": "Danielle Babatunde",
+      "week_day": "Thursday",
+      "scheduled_time": "08:40",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Sociology King's Oak School",
+      "host_name": "Danielle Babatunde",
+      "week_day": "Thursday",
+      "scheduled_time": "09:35",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Sociology King's Oak School",
+      "host_name": "Danielle Babatunde",
+      "week_day": "Friday",
+      "scheduled_time": "09:35",
+      "rate_pound": 20
+    },
+    {
+      "topic": "A level Math",
+      "host_name": "Mihai Niculae",
+      "week_day": "Wednesday",
+      "scheduled_time": "15:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "A level Math",
+      "host_name": "Mihai Niculae",
+      "week_day": "Wednesday",
+      "scheduled_time": "16:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "A level Math",
+      "host_name": "Mihai Niculae",
+      "week_day": "Thursday",
+      "scheduled_time": "15:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "A level Math",
+      "host_name": "Mihai Niculae",
+      "week_day": "Thursday",
+      "scheduled_time": "16:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "A level Further Math",
+      "host_name": "Mihai Niculae",
+      "week_day": "Monday",
+      "scheduled_time": "17:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "A level Further Math",
+      "host_name": "Mihai Niculae",
+      "week_day": "Monday",
+      "scheduled_time": "18:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "A level Further Math",
+      "host_name": "Mihai Niculae",
+      "week_day": "Friday",
+      "scheduled_time": "16:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "A level Further Math",
+      "host_name": "Mihai Niculae",
+      "week_day": "Friday",
+      "scheduled_time": "17:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "IGCSE Biology",
+      "host_name": "Maria Mazevet",
+      "week_day": "Monday",
+      "scheduled_time": "14:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "IGCSE Biology",
+      "host_name": "Maria Mazevet",
+      "week_day": "Tuesday",
+      "scheduled_time": "14:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "IGCSE Biology",
+      "host_name": "Maria Mazevet",
+      "week_day": "Wednesday",
+      "scheduled_time": "10:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "IGCSE Chemistry",
+      "host_name": "Maria Mazevet",
+      "week_day": "Tuesday",
+      "scheduled_time": "17:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "IGCSE Chemistry",
+      "host_name": "Maria Mazevet",
+      "week_day": "Tuesday",
+      "scheduled_time": "18:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "IGCSE Chemistry",
+      "host_name": "Maria Mazevet",
+      "week_day": "Wednesday",
+      "scheduled_time": "12:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "A level Business",
+      "host_name": "Faraz Ahmad",
+      "week_day": "Monday",
+      "scheduled_time": "15:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "A level Business",
+      "host_name": "Faraz Ahmad",
+      "week_day": "Monday",
+      "scheduled_time": "16:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "A level Business",
+      "host_name": "Faraz Ahmad",
+      "week_day": "Thursday",
+      "scheduled_time": "17:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "A level Business",
+      "host_name": "Faraz Ahmad",
+      "week_day": "Thursday",
+      "scheduled_time": "18:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Omer English",
+      "host_name": "Lori Cali",
+      "week_day": "Monday",
+      "scheduled_time": "09:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Omer English",
+      "host_name": "Jenna Nel",
+      "week_day": "Tuesday",
+      "scheduled_time": "09:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Omer English",
+      "host_name": "Jenna Nel",
+      "week_day": "Tuesday",
+      "scheduled_time": "10:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Omer English",
+      "host_name": "Lori Cali",
+      "week_day": "Wednesday",
+      "scheduled_time": "09:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Omer English",
+      "host_name": "Lori Cali",
+      "week_day": "Thursday",
+      "scheduled_time": "09:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Omer English",
+      "host_name": "Lori Cali",
+      "week_day": "Friday",
+      "scheduled_time": "09:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Lower Secondary English",
+      "host_name": "Nicola Hendricks",
+      "week_day": "Wednesday",
+      "scheduled_time": "13:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Lower Secondary English",
+      "host_name": "Nicola Hendricks",
+      "week_day": "Wednesday",
+      "scheduled_time": "14:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Lower Secondary English",
+      "host_name": "Nicola Hendricks",
+      "week_day": "Thursday",
+      "scheduled_time": "15:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Lower Secondary Science",
+      "host_name": "Nicola Hendricks",
+      "week_day": "Monday",
+      "scheduled_time": "13:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Lower Secondary Science",
+      "host_name": "Nicola Hendricks",
+      "week_day": "Tuesday",
+      "scheduled_time": "13:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Lower Secondary Science",
+      "host_name": "Nicola Hendricks",
+      "week_day": "Wednesday",
+      "scheduled_time": "09:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Lower Primary English 2",
+      "host_name": "Lori Cali",
+      "week_day": "Monday",
+      "scheduled_time": "14:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Lower Primary English 2",
+      "host_name": "Lori Cali",
+      "week_day": "Tuesday",
+      "scheduled_time": "14:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Lower Primary English 2",
+      "host_name": "Lori Cali",
+      "week_day": "Wednesday",
+      "scheduled_time": "15:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Primary Math",
+      "host_name": "Jessica Mccallum",
+      "week_day": "Monday",
+      "scheduled_time": "09:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Primary Math",
+      "host_name": "Jessica Mccallum",
+      "week_day": "Tuesday",
+      "scheduled_time": "10:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Primary Math",
+      "host_name": "Jessica Mccallum",
+      "week_day": "Thursday",
+      "scheduled_time": "13:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Primary Science",
+      "host_name": "Jessica Mccallum",
+      "week_day": "Monday",
+      "scheduled_time": "11:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Primary Science",
+      "host_name": "Jessica Mccallum",
+      "week_day": "Tuesday",
+      "scheduled_time": "12:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Primary Science",
+      "host_name": "Jessica Mccallum",
+      "week_day": "Wednesday",
+      "scheduled_time": "10:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Primary Math DD",
+      "host_name": "Jessica Mccallum",
+      "week_day": "Wednesday",
+      "scheduled_time": "16:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Primary Science DD",
+      "host_name": "Jessica Mccallum",
+      "week_day": "Thursday",
+      "scheduled_time": "16:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "primary English DD",
+      "host_name": "Jessica Mccallum",
+      "week_day": "Tuesday",
+      "scheduled_time": "16:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Lower Primary English 3",
+      "host_name": "Jonny Wiliam",
+      "week_day": "Tuesday",
+      "scheduled_time": "17:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Lower Primary English 3",
+      "host_name": "Jonny Wiliam",
+      "week_day": "Tuesday",
+      "scheduled_time": "18:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Lower Primary Maths 3",
+      "host_name": "Jonny Wiliam",
+      "week_day": "Wednesday",
+      "scheduled_time": "17:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Lower Primary science 3",
+      "host_name": "Jonny Wiliam",
+      "week_day": "Wednesday",
+      "scheduled_time": "18:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Sevval math",
+      "host_name": "Tanish Chaudhry",
+      "week_day": "Friday",
+      "scheduled_time": "18:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Bora math",
+      "host_name": "Tanish Chaudhry",
+      "week_day": "Saturday",
+      "scheduled_time": "10:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "A level Global Perspective",
+      "host_name": "James Broad",
+      "week_day": "Tuesday",
+      "scheduled_time": "17:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "A level Global Perspective",
+      "host_name": "James Broad",
+      "week_day": "Wednesday",
+      "scheduled_time": "17:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "A level Computer Science Heritage",
+      "host_name": "Mihai Niculae",
+      "week_day": "Monday",
+      "scheduled_time": "11:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "A level Computer Science Heritage",
+      "host_name": "Mihai Niculae",
+      "week_day": "Wednesday",
+      "scheduled_time": "13:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "A level Computer Science Heritage",
+      "host_name": "Mihai Niculae",
+      "week_day": "Friday",
+      "scheduled_time": "10:15",
+      "rate_pound": 20
+    },
+    {
+      "topic": "IGCSE Physics",
+      "host_name": "Matt Vickery",
+      "week_day": "Monday",
+      "scheduled_time": "17:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "IGCSE Physics",
+      "host_name": "Matt Vickery",
+      "week_day": "Monday",
+      "scheduled_time": "18:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "IGCSE Physics",
+      "host_name": "Matt Vickery",
+      "week_day": "Wednesday",
+      "scheduled_time": "11:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "A Level Physics",
+      "host_name": "Matt Vickery",
+      "week_day": "Monday",
+      "scheduled_time": "15:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "A Level Physics",
+      "host_name": "Matt Vickery",
+      "week_day": "Monday",
+      "scheduled_time": "16:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "A Level Physics",
+      "host_name": "Matt Vickery",
+      "week_day": "Tuesday",
+      "scheduled_time": "16:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "A Level Physics",
+      "host_name": "Matt Vickery",
+      "week_day": "Tuesday",
+      "scheduled_time": "16:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Akif English",
+      "host_name": "Lori Cali",
+      "week_day": "Wednesday",
+      "scheduled_time": "09:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Omer English",
+      "host_name": "Lori Cali",
+      "week_day": "Monday",
+      "scheduled_time": "09:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Omer English",
+      "host_name": "Lori Cali",
+      "week_day": "Thursday",
+      "scheduled_time": "09:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Omer English",
+      "host_name": "Lori Cali",
+      "week_day": "Friday",
+      "scheduled_time": "09:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Primary Science",
+      "host_name": "Lori Cali",
+      "week_day": "Monday",
+      "scheduled_time": "11:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Primary Science",
+      "host_name": "Lori Cali",
+      "week_day": "Tuesday",
+      "scheduled_time": "10:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Primary Science",
+      "host_name": "Lori Cali",
+      "week_day": "Wednesday",
+      "scheduled_time": "12:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Primary English DD",
+      "host_name": "Lori Cali",
+      "week_day": "Tuesday",
+      "scheduled_time": "16:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Primary Science DD",
+      "host_name": "Lori Cali",
+      "week_day": "Thursday",
+      "scheduled_time": "15:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Story Telling KY HZB",
+      "host_name": "Jenna Nel",
+      "week_day": "Thursday",
+      "scheduled_time": "09:40",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Story Telling BK HZ",
+      "host_name": "Jenna Nel",
+      "week_day": "Wednesday",
+      "scheduled_time": "10:40",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Story Telling AK CR HZ",
+      "host_name": "Jenna Nel",
+      "week_day": "Tuesday",
+      "scheduled_time": "11:00",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Story Telling KY HZA",
+      "host_name": "Jenna Nel",
+      "week_day": "Thursday",
+      "scheduled_time": "10:30",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Maths BK4A",
+      "host_name": "Matt Vickery",
+      "week_day": "Monday",
+      "scheduled_time": "11:10",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Maths AK4A",
+      "host_name": "Matt Vickery",
+      "week_day": "Tuesday",
+      "scheduled_time": "09:35",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Maths KY4B",
+      "host_name": "Matt Vickery",
+      "week_day": "Wednesday",
+      "scheduled_time": "08:20",
+      "rate_pound": 20
+    },
+    {
+      "topic": "Maths KY4A",
+      "host_name": "Matt Vickery",
+      "week_day": "Wednesday",
+      "scheduled_time": "12:05",
+      "rate_pound": 20
+    },
+    {
+      "topic": "My Meeting",
+      "host_name": "Kerven Gullyyev",
+      "week_day": "Thursday",
+      "scheduled_time": "11:18",
+      "rate_pound": 20
+    }
   ]
 }
