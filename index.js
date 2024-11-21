@@ -3,16 +3,26 @@ const express = require('express');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const schedule = require('node-schedule');
+const nodemailer = require('nodemailer');
+const { format, parseISO } = require('date-fns');
+const { zonedTimeToUtc } = require('date-fns-tz');
 
 const app = express();
 const port = process.env.PORT || 3000;
 const ZOOM_WEBHOOK_SECRET = process.env.ZOOM_WEBHOOK_SECRET_TOKEN;
+const IT_EMAIL = process.env.IT_EMAIL;
+const SMTP_HOST = process.env.SMTP_HOST;
+const SMTP_PORT = process.env.SMTP_PORT;
+const SMTP_USER = process.env.SMTP_USER;
+const SMTP_PASS = process.env.SMTP_PASS;
+
+// CSV and JSON file paths
+const csvFilePath = path.join(__dirname, 'attendance.csv');
+const coursesFilePath = path.join(__dirname, 'courses.json');
 
 // Middleware to parse JSON
 app.use(express.json());
-
-// CSV file path
-const csvFilePath = path.join(__dirname, 'attendance.csv');
 
 // Ensure the CSV file exists and has headers
 if (!fs.existsSync(csvFilePath)) {
@@ -23,6 +33,17 @@ if (!fs.existsSync(csvFilePath)) {
     console.log('Attendance file exists. Proceeding...');
 }
 
+// Configure SMTP transporter
+const transporter = nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: false,
+    auth: {
+        user: SMTP_USER,
+        pass: SMTP_PASS,
+    },
+});
+
 // Validate Zoom webhook
 const validateZoomWebhook = (req) => {
     const message = `v0:${req.headers['x-zm-request-timestamp']}:${JSON.stringify(req.body)}`;
@@ -31,38 +52,68 @@ const validateZoomWebhook = (req) => {
     return signature === req.headers['x-zm-signature'];
 };
 
-// Save meeting started data to CSV
-const saveMeetingToCSV = (data) => {
-    console.log(`Saving meeting started data for ID: ${data.id} at start time: ${data.start_time}`);
-    const csvData = `${data.id},${data.topic},${data.host_id},${data.start_time || ''},${data.end_time || ''}\n`;
-    fs.appendFileSync(csvFilePath, csvData);
-    console.log('Meeting started data saved successfully.');
-};
-
-// Update meeting end time in CSV for the corresponding meeting occurrence
-const updateMeetingEndTimeInCSV = (id, startTime, endTime) => {
-    console.log(`Updating meeting ended data for ID: ${id} with start time: ${startTime}`);
-    const csvData = fs.readFileSync(csvFilePath, 'utf8').split('\n');
-    let updated = false;
-    const updatedData = csvData.map((line) => {
-        const fields = line.split(',');
-        if (fields[0] === id && fields[3] === startTime && !fields[4]) {
-            fields[4] = endTime;
-            updated = true;
-            console.log(`End time updated for meeting ID: ${id} at start time: ${startTime}`);
-            return fields.join(',');
-        }
-        return line;
-    }).join('\n');
-
-    if (updated) {
-        fs.writeFileSync(csvFilePath, updatedData);
-        console.log('Meeting ended data updated successfully.');
-    } else {
-        console.log('No matching meeting occurrence found to update.');
+// Load today's courses
+let todaysCourses = [];
+const loadTodaysCourses = () => {
+    console.log('Loading today\'s courses...');
+    try {
+        const coursesData = JSON.parse(fs.readFileSync(coursesFilePath, 'utf8'));
+        const todayWeekDay = format(new Date(), 'EEEE');
+        todaysCourses = coursesData.courses.filter(course => course.week_day === todayWeekDay);
+        console.log('Today\'s courses loaded:', todaysCourses);
+    } catch (err) {
+        console.error('Failed to load courses:', err.message);
     }
 };
 
+// Check meeting attendance
+const checkMeetingAttendance = async (course) => {
+    console.log(`Checking attendance for course: ${course.topic} at ${course.scheduled_time}`);
+    try {
+        const attendanceData = fs.readFileSync(csvFilePath, 'utf8').split('\n').slice(1).map(line => {
+            const [id, topic, host_id, start_time] = line.split(',');
+            return { id, topic, host_id, start_time };
+        });
+
+        const meetingExists = attendanceData.some(meeting => 
+            meeting.topic.trim() === course.topic.trim() &&
+            parseISO(meeting.start_time) <= zonedTimeToUtc(new Date(`${format(new Date(), 'yyyy-MM-dd')}T${course.scheduled_time}:00`), 'Europe/London')
+        );
+
+        if (!meetingExists) {
+            console.log(`Meeting not started for course: ${course.topic}. Sending email to IT.`);
+            await transporter.sendMail({
+                from: SMTP_USER,
+                to: IT_EMAIL,
+                subject: `Meeting Not Started: ${course.topic}`,
+                text: `The scheduled meeting for "${course.topic}" at ${course.scheduled_time} has not started.`,
+            });
+            console.log('Email sent to IT successfully.');
+        } else {
+            console.log(`Meeting for course: ${course.topic} has started.`);
+        }
+    } catch (err) {
+        console.error('Failed to check attendance or send email:', err.message);
+    }
+};
+
+// Schedule daily course checks at 04:00
+schedule.scheduleJob('0 4 * * *', () => {
+    loadTodaysCourses();
+    todaysCourses.forEach(course => {
+        const [hour, minute] = course.scheduled_time.split(':').map(Number);
+        schedule.scheduleJob({ hour, minute, tz: 'Europe/London' }, () => checkMeetingAttendance(course));
+    });
+});
+
+// Load courses on server start and set up checks for today's courses
+loadTodaysCourses();
+todaysCourses.forEach(course => {
+    const [hour, minute] = course.scheduled_time.split(':').map(Number);
+    schedule.scheduleJob({ hour, minute, tz: 'Europe/London' }, () => checkMeetingAttendance(course));
+});
+
+// Zoom webhook endpoint
 app.post('/webhook', (req, res) => {
     console.log('Webhook received:', req.body);
 
@@ -93,7 +144,8 @@ app.post('/webhook', (req, res) => {
             host_id: payload.host_id,
             start_time: payload.start_time,
         };
-        saveMeetingToCSV(meetingData);
+        fs.appendFileSync(csvFilePath, `${meetingData.id},${meetingData.topic},${meetingData.host_id},${meetingData.start_time},\n`);
+        console.log('Meeting started data saved successfully.');
         res.status(200).send('Meeting started logged');
     } else if (event === 'meeting.ended') {
         console.log('Meeting ended event received.');
@@ -106,7 +158,19 @@ app.post('/webhook', (req, res) => {
         const meetingId = payload.id;
         const startTime = payload.start_time;
         const endTime = payload.end_time;
-        updateMeetingEndTimeInCSV(meetingId, startTime, endTime);
+
+        const csvData = fs.readFileSync(csvFilePath, 'utf8').split('\n');
+        const updatedData = csvData.map(line => {
+            const fields = line.split(',');
+            if (fields[0] === meetingId && fields[3] === startTime && !fields[4]) {
+                fields[4] = endTime;
+                return fields.join(',');
+            }
+            return line;
+        }).join('\n');
+
+        fs.writeFileSync(csvFilePath, updatedData);
+        console.log('Meeting ended data updated successfully.');
         res.status(200).send('Meeting ended logged');
     } else {
         console.log(`Unhandled event type: ${event}`);
