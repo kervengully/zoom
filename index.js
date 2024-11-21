@@ -57,6 +57,8 @@ const updateMeetingEndTimeInCSV = (id, endTime) => {
 };
 
 app.post('/webhook', (req, res) => {
+    console.log('Webhook received:', req.body);
+
     if (!validateZoomWebhook(req)) {
         console.log('Invalid webhook signature.');
         return res.status(400).send('Invalid request');
@@ -65,8 +67,19 @@ app.post('/webhook', (req, res) => {
     const event = req.body.event;
     const payload = req.body.object;
 
+    if (!payload) {
+        console.log('Invalid payload: Missing object.');
+        return res.status(400).send('Invalid payload');
+    }
+
     if (event === 'meeting.started') {
         console.log('Meeting started event received.');
+
+        if (!payload.id || !payload.topic || !payload.host_id || !payload.start_time) {
+            console.log('Invalid payload: Missing required fields for meeting.started.');
+            return res.status(400).send('Invalid payload for meeting.started');
+        }
+
         const meetingData = {
             id: payload.id,
             topic: payload.topic,
@@ -77,6 +90,12 @@ app.post('/webhook', (req, res) => {
         res.status(200).send('Meeting started logged');
     } else if (event === 'meeting.ended') {
         console.log('Meeting ended event received.');
+
+        if (!payload.id || !payload.end_time) {
+            console.log('Invalid payload: Missing required fields for meeting.ended.');
+            return res.status(400).send('Invalid payload for meeting.ended');
+        }
+
         const meetingId = payload.id;
         const endTime = payload.end_time;
         updateMeetingEndTimeInCSV(meetingId, endTime);
