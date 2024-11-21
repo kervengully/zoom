@@ -569,6 +569,12 @@
         "host_name": "Matt Vickery",
         "week_day": "Wednesday",
         "scheduled_time": "12:05"
+      },
+      {
+        "topic": "My Meeting",
+        "host_name": "Kerven Gullyyev",
+        "week_day": "Thursday",
+        "scheduled_time": "09:11"
       }
   ]
 }
