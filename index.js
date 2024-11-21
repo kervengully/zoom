@@ -1,634 +1,147 @@
-// Load environment variables from .env file
+const express = require('express');
+const bodyParser = require('body-parser');
+const crypto = require('crypto');
+const fs = require('fs');
+const csvParser = require('csv-parser');
+const csvWriter = require('csv-writer');
+
+// Load environment variables from a .env file
 require('dotenv').config();
 
-const express = require('express');
-const fs = require('fs');
-const moment = require('moment-timezone');
-const crypto = require('crypto');
-const nodeCron = require('node-cron');
-const nodemailer = require('nodemailer');
-const path = require('path');
-const http = require('http'); // Required for Socket.io
-const socketIo = require('socket.io'); // Socket.io for real-time updates
-const csvWriter = require('csv-writer').createObjectCsvWriter;
-const csvParser = require('csv-parser'); // For reading CSV files
-
 const app = express();
-const port = process.env.PORT || 3600;
 
-// Create HTTP server and initialize Socket.io
-const server = http.createServer(app);
-const io = socketIo(server);
-
-app.use(express.json());
-
-// Paths
-const coursesJsonPath = 'courses.json';
-const attendanceCsvPath = 'attendance.csv';
-const reportsDir = path.join(__dirname, 'Reports');
-
-// Ensure the Reports directory exists
-if (!fs.existsSync(reportsDir)) {
-  fs.mkdirSync(reportsDir);
-}
-
-// Load courses data
-let courses = [];
-function loadCourses() {
-  try {
-    const coursesData = fs.readFileSync(coursesJsonPath, 'utf8');
-    const coursesJson = JSON.parse(coursesData);
-    courses = coursesJson.courses;
-  } catch (error) {
-    console.error('Error reading courses.json:', error);
-  }
-}
-
-// In-memory store for ongoing meetings
-const ongoingMeetings = {};
-
-// Helper functions
-function parseISOTime(timeStr) {
-  return moment.tz(timeStr, 'YYYY-MM-DDTHH:mm:ssZ', 'UTC').tz('Europe/London');
-}
-
-function getWeekdayName(dateObj) {
-  return dateObj.format('dddd');
-}
-
-function computeTotalMinutes(startTime, endTime) {
-  return endTime.diff(startTime, 'minutes');
-}
-
-function getScheduledDateTime(date, scheduledTime) {
-  return moment.tz(`${date} ${scheduledTime}`, 'YYYY-MM-DD HH:mm', 'Europe/London');
-}
-
-// Configure nodemailer transporter
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT) || 587,
-  secure: false, // true for 465, false for other ports
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+// Middleware to capture raw body for HMAC verification
+app.use(bodyParser.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf.toString();
   },
-});
+}));
 
-// Serve static files from the 'public' directory
-app.use(express.static('public'));
+const PORT = process.env.PORT || 3000;
 
-// Endpoint for Zoom webhook events
-app.post('/webhook', (req, res) => {
-  const event = req.body.event;
-  const payload = req.body.payload;
+// Use the secret token from the environment variable
+const ZOOM_SECRET_TOKEN = process.env.ZOOM_WEBHOOK_SECRET_TOKEN;
 
-  // Handle Zoom endpoint validation
-  if (event === 'endpoint.url_validation') {
-    const plainToken = payload.plainToken;
-    const encryptedToken = crypto
-      .createHmac('sha256', process.env.ZOOM_WEBHOOK_SECRET_TOKEN)
-      .update(plainToken)
-      .digest('hex');
+if (!ZOOM_SECRET_TOKEN) {
+  console.error('ZOOM_WEBHOOK_SECRET_TOKEN is not set in the environment variables.');
+  process.exit(1);
+}
 
-    res.status(200).json({
-      plainToken,
-      encryptedToken,
-    });
-    return;
+// Path to the CSV file
+const CSV_FILE_PATH = 'attendance.csv';
+
+// Function to verify Zoom webhook requests using HMAC
+function verifyZoomRequest(req, res, next) {
+  const signature = req.headers['x-zm-signature'];
+  if (!signature) {
+    return res.status(401).send('Unauthorized - No signature header');
   }
 
-  // Verify the request signature
-  const timestamp = req.headers['x-zm-request-timestamp'];
-  const message = `v0:${timestamp}:${JSON.stringify(req.body)}`;
-  const hashForVerify = crypto
-    .createHmac('sha256', process.env.ZOOM_WEBHOOK_SECRET_TOKEN)
-    .update(message)
-    .digest('hex');
-  const signature = `v0=${hashForVerify}`;
+  const message = req.headers['x-zm-request-timestamp'] + req.rawBody;
+  const hmac = crypto.createHmac('sha256', ZOOM_SECRET_TOKEN);
+  hmac.update(message);
+  const computedSignature = hmac.digest('hex');
 
-  if (req.headers['x-zm-signature'] !== signature) {
-    res.status(401).send('Unauthorized request');
-    return;
+  if (signature === computedSignature) {
+    next();
+  } else {
+    res.status(401).send('Unauthorized - Invalid signature');
   }
+}
 
-  // Handle meeting.started event
+// Route to handle Zoom webhooks
+app.post('/zoom/webhook', verifyZoomRequest, (req, res) => {
+  const { event, payload } = req.body;
+
   if (event === 'meeting.started') {
-    const meetingId = payload.object.id.toString(); // Ensure it's a string
-    const topic = payload.object.topic;
-    const startTime = payload.object.start_time;
-    const hostId = payload.object.host_id || 'N/A'; // Handle undefined host_id
-
-    // Log the meeting.started payload
-    console.log('meeting.started payload:', payload);
-
-    // Store the start time, topic, and host id of the meeting
-    ongoingMeetings[meetingId] = {
-      topic,
-      startTime,
-      hostId,
-    };
-
-    console.log(`Meeting started: ID ${meetingId}, Topic: ${topic}`);
-
-    // Save details to attendance.csv
-    const enteredTimeDt = parseISOTime(startTime);
-    const todayDate = enteredTimeDt.format('YYYY-MM-DD');
-    const enteredTime = enteredTimeDt.format('HH:mm');
-
-    // Find matching course
-    const matchingCourse = courses.find(
-      (course) =>
-        course.course_name === topic &&
-        course.week_day === getWeekdayName(enteredTimeDt)
-    );
-
-    // Prepare attendance record
-    const attendanceRecord = {
-      course_id: matchingCourse ? matchingCourse.course_id : meetingId,
-      course_name: topic,
-      teacher_name: matchingCourse ? matchingCourse.teacher_name : 'N/A',
-      week_day: matchingCourse ? matchingCourse.week_day : getWeekdayName(enteredTimeDt),
-      scheduled_time: matchingCourse ? matchingCourse.scheduled_time : 'N/A',
-      host_id: hostId,
-      today_date: todayDate,
-      entered_time: enteredTime,
-      finished_time: '',
-      total_time: '',
-      status: 'In Progress',
-    };
-
-    // Append to attendance.csv
-    appendToAttendanceCSV(attendanceRecord);
-
-    // Emit event to clients
-    io.emit('attendanceUpdated', attendanceRecord);
-  }
-  // Handle meeting.ended event
-  else if (event === 'meeting.ended') {
-    const meetingId = payload.object.id.toString(); // Ensure it's a string
-    const endTime = payload.object.end_time;
-
-    // Log the meeting.ended payload
-    console.log('meeting.ended payload:', payload);
-
-    if (ongoingMeetings[meetingId]) {
-      const { topic, startTime, hostId } = ongoingMeetings[meetingId];
-
-      // Meeting times and calculations
-      const enteredTimeDt = parseISOTime(startTime);
-      const finishedTimeDt = parseISOTime(endTime);
-      const totalTime = computeTotalMinutes(enteredTimeDt, finishedTimeDt);
-
-      const todayDate = enteredTimeDt.format('YYYY-MM-DD');
-      const enteredTime = enteredTimeDt.format('HH:mm');
-      const finishedTime = finishedTimeDt.format('HH:mm');
-
-      // Find matching course
-      const matchingCourse = courses.find(
-        (course) =>
-          course.course_name === topic &&
-          course.week_day === getWeekdayName(enteredTimeDt)
-      );
-
-      // Prepare updated attendance record
-      const updatedRecord = {
-        course_id: matchingCourse ? matchingCourse.course_id : meetingId,
-        course_name: topic,
-        teacher_name: matchingCourse ? matchingCourse.teacher_name : 'N/A',
-        week_day: matchingCourse ? matchingCourse.week_day : getWeekdayName(enteredTimeDt),
-        scheduled_time: matchingCourse ? matchingCourse.scheduled_time : 'N/A',
-        host_id: hostId,
-        today_date: todayDate,
-        entered_time: enteredTime,
-        finished_time: finishedTime,
-        total_time: totalTime.toString(),
-        status: '',
-      };
-
-      // Update attendance.csv
-      updateAttendanceCSV(updatedRecord);
-
-      // Remove from ongoing meetings
-      delete ongoingMeetings[meetingId];
-
-      // Emit event to clients
-      io.emit('attendanceUpdated', updatedRecord);
-    } else {
-      console.error(`No ongoing meeting found for ID: ${meetingId}`);
-
-      // Meeting was not recorded in ongoingMeetings, but we still need to save it
-
-      const enteredTimeDt = parseISOTime(payload.object.start_time);
-      const finishedTimeDt = parseISOTime(endTime);
-      const totalTime = computeTotalMinutes(enteredTimeDt, finishedTimeDt);
-
-      const todayDate = enteredTimeDt.format('YYYY-MM-DD');
-      const enteredTime = enteredTimeDt.format('HH:mm');
-      const finishedTime = finishedTimeDt.format('HH:mm');
-      const topic = payload.object.topic;
-      const hostId = payload.object.host_id || 'N/A';
-
-      // Find matching course
-      const matchingCourse = courses.find(
-        (course) =>
-          course.course_name === topic &&
-          course.week_day === getWeekdayName(enteredTimeDt)
-      );
-
-      // Prepare attendance record
-      const attendanceRecord = {
-        course_id: matchingCourse ? matchingCourse.course_id : meetingId,
-        course_name: topic,
-        teacher_name: matchingCourse ? matchingCourse.teacher_name : 'N/A',
-        week_day: matchingCourse ? matchingCourse.week_day : getWeekdayName(enteredTimeDt),
-        scheduled_time: matchingCourse ? matchingCourse.scheduled_time : 'N/A',
-        host_id: hostId,
-        today_date: todayDate,
-        entered_time: enteredTime,
-        finished_time: finishedTime,
-        total_time: totalTime.toString(),
-        status: '',
-      };
-
-      // Append to attendance.csv
-      appendToAttendanceCSV(attendanceRecord);
-
-      // Emit event to clients
-      io.emit('attendanceUpdated', attendanceRecord);
-    }
-  } else {
-    console.log(`Unhandled event type: ${event}`);
+    handleMeetingStarted(payload);
+  } else if (event === 'meeting.ended') {
+    handleMeetingEnded(payload);
   }
 
-  res.status(200).json({ message: 'Event processed.' });
+  res.status(200).send();
 });
 
-// Function to append a record to attendance.csv
-function appendToAttendanceCSV(record) {
-  const headers = [
-    { id: 'course_id', title: 'Course ID' },
-    { id: 'course_name', title: 'Course Name' },
-    { id: 'teacher_name', title: 'Teacher Name' },
-    { id: 'week_day', title: 'Week Day' },
-    { id: 'scheduled_time', title: 'Scheduled Time' },
-    { id: 'host_id', title: 'Host ID' },
-    { id: 'today_date', title: 'Date' },
-    { id: 'entered_time', title: 'Entered Time' },
-    { id: 'finished_time', title: 'Finished Time' },
-    { id: 'total_time', title: 'Total Time (minutes)' },
-    { id: 'status', title: 'Status' },
-  ];
-
-  const writer = csvWriter({
-    path: attendanceCsvPath,
-    header: headers,
-    append: fs.existsSync(attendanceCsvPath),
-  });
-
-  writer
-    .writeRecords([record])
-    .then(() => console.log('Attendance record added'))
-    .catch((err) => console.error('Error writing to attendance.csv:', err));
+// Function to handle meeting.started event
+function handleMeetingStarted(payload) {
+  const { id, topic, host_id, start_time } = payload.object;
+  const data = {
+    id: id.toString(),
+    topic,
+    host_id,
+    start_time,
+    end_time: '',
+  };
+  appendToCSV(data);
 }
 
-// Function to update a record in attendance.csv
-function updateAttendanceCSV(updatedRecord) {
+// Function to handle meeting.ended event
+function handleMeetingEnded(payload) {
+  const { id, end_time } = payload.object;
+  updateCSV(id.toString(), end_time);
+}
+
+// Append new meeting data to CSV
+function appendToCSV(data) {
+  const fileExists = fs.existsSync(CSV_FILE_PATH);
+
+  const writer = csvWriter.createObjectCsvWriter({
+    path: CSV_FILE_PATH,
+    header: [
+      { id: 'id', title: 'ID' },
+      { id: 'topic', title: 'Topic' },
+      { id: 'host_id', title: 'Host ID' },
+      { id: 'start_time', title: 'Start Time' },
+      { id: 'end_time', title: 'End Time' },
+    ],
+    append: fileExists,
+  });
+
+  writer.writeRecords([data])
+    .then(() => console.log('Meeting started data appended to CSV'))
+    .catch((err) => console.error('Error writing to CSV:', err));
+}
+
+// Update existing meeting data with end_time in CSV
+function updateCSV(meetingId, endTime) {
+  if (!fs.existsSync(CSV_FILE_PATH)) {
+    return console.error('CSV file does not exist');
+  }
+
   const records = [];
-  fs.createReadStream(attendanceCsvPath)
+
+  fs.createReadStream(CSV_FILE_PATH)
     .pipe(csvParser())
-    .on('data', (data) => {
-      if (
-        data.course_name === updatedRecord.course_name &&
-        data.host_id === updatedRecord.host_id &&
-        data.today_date === updatedRecord.today_date &&
-        data.entered_time === updatedRecord.entered_time
-      ) {
-        // Update the record
-        data.finished_time = updatedRecord.finished_time;
-        data.total_time = updatedRecord.total_time;
-        data.status = updatedRecord.status;
-      }
-      records.push(data);
-    })
+    .on('data', (data) => records.push(data))
     .on('end', () => {
-      const headers = [
-        { id: 'course_id', title: 'Course ID' },
-        { id: 'course_name', title: 'Course Name' },
-        { id: 'teacher_name', title: 'Teacher Name' },
-        { id: 'week_day', title: 'Week Day' },
-        { id: 'scheduled_time', title: 'Scheduled Time' },
-        { id: 'host_id', title: 'Host ID' },
-        { id: 'today_date', title: 'Date' },
-        { id: 'entered_time', title: 'Entered Time' },
-        { id: 'finished_time', title: 'Finished Time' },
-        { id: 'total_time', title: 'Total Time (minutes)' },
-        { id: 'status', title: 'Status' },
-      ];
-
-      const writer = csvWriter({
-        path: attendanceCsvPath,
-        header: headers,
-      });
-
-      writer
-        .writeRecords(records)
-        .then(() => console.log('Attendance record updated'))
-        .catch((err) => console.error('Error writing to attendance.csv:', err));
+      const index = records.findIndex((record) => record.id === meetingId);
+      if (index !== -1) {
+        records[index].end_time = endTime;
+        writeToCSV(records);
+      } else {
+        console.error(`Meeting with ID ${meetingId} not found in CSV`);
+      }
     });
 }
 
-// Function to check attendance at scheduled course times
-function checkAttendance() {
-  const today = moment().tz('Europe/London').format('YYYY-MM-DD');
-  const weekDay = moment().tz('Europe/London').format('dddd');
-
-  courses.forEach((course) => {
-    if (course.week_day === weekDay) {
-      const scheduledDateTime = getScheduledDateTime(today, course.scheduled_time);
-
-      // Only schedule if the time is in the future
-      if (scheduledDateTime.isAfter(moment().tz('Europe/London'))) {
-        const checkTime = scheduledDateTime.clone(); // At scheduled time
-
-        const cronExpression = `${checkTime.minute()} ${checkTime.hour()} ${checkTime.date()} ${checkTime.month() + 1} *`;
-
-        nodeCron.schedule(cronExpression, () => {
-          console.log(`Checking attendance for course: ${course.course_name}`);
-
-          // Read attendance.csv
-          const records = [];
-          if (fs.existsSync(attendanceCsvPath)) {
-            fs.createReadStream(attendanceCsvPath)
-              .pipe(csvParser())
-              .on('data', (data) => {
-                records.push(data);
-              })
-              .on('end', () => {
-                const matchingRecord = records.find(
-                  (record) =>
-                    record.course_name === course.course_name &&
-                    record.today_date === today
-                );
-
-                if (!matchingRecord || matchingRecord.finished_time) {
-                  // Not attended
-                  const status = 'Not Attended';
-                  sendEmailToIT({
-                    subject: `Course Not Attended - ${course.course_name}`,
-                    text: `The course "${course.course_name}" scheduled at ${course.scheduled_time} was not attended.`,
-                  });
-
-                  // Update attendance.csv
-                  const newRecord = {
-                    course_id: course.course_id,
-                    course_name: course.course_name,
-                    teacher_name: course.teacher_name,
-                    week_day: course.week_day,
-                    scheduled_time: course.scheduled_time,
-                    host_id: 'N/A',
-                    today_date: today,
-                    entered_time: '',
-                    finished_time: '',
-                    total_time: '',
-                    status: status,
-                  };
-
-                  appendToAttendanceCSV(newRecord);
-
-                  // Emit event to clients
-                  io.emit('attendanceUpdated', newRecord);
-                } else if (matchingRecord && !matchingRecord.finished_time) {
-                  // Attended
-                  const status = 'Attended';
-
-                  // Update status in attendance.csv
-                  matchingRecord.status = status;
-
-                  // Re-write attendance.csv
-                  const headers = [
-                    { id: 'course_id', title: 'Course ID' },
-                    { id: 'course_name', title: 'Course Name' },
-                    { id: 'teacher_name', title: 'Teacher Name' },
-                    { id: 'week_day', title: 'Week Day' },
-                    { id: 'scheduled_time', title: 'Scheduled Time' },
-                    { id: 'host_id', title: 'Host ID' },
-                    { id: 'today_date', title: 'Date' },
-                    { id: 'entered_time', title: 'Entered Time' },
-                    { id: 'finished_time', title: 'Finished Time' },
-                    { id: 'total_time', title: 'Total Time (minutes)' },
-                    { id: 'status', title: 'Status' },
-                  ];
-
-                  const updatedRecords = records.map((record) =>
-                    record.course_name === matchingRecord.course_name &&
-                    record.today_date === matchingRecord.today_date
-                      ? matchingRecord
-                      : record
-                  );
-
-                  const writer = csvWriter({
-                    path: attendanceCsvPath,
-                    header: headers,
-                  });
-
-                  writer
-                    .writeRecords(updatedRecords)
-                    .then(() => console.log('Attendance status updated'))
-                    .catch((err) =>
-                      console.error('Error writing to attendance.csv:', err)
-                    );
-
-                  // Emit event to clients
-                  io.emit('attendanceUpdated', matchingRecord);
-                }
-              });
-          } else {
-            // attendance.csv doesn't exist, so course was not attended
-            const status = 'Not Attended';
-            sendEmailToIT({
-              subject: `Course Not Attended - ${course.course_name}`,
-              text: `The course "${course.course_name}" scheduled at ${course.scheduled_time} was not attended.`,
-            });
-
-            // Update attendance.csv
-            const newRecord = {
-              course_id: course.course_id,
-              course_name: course.course_name,
-              teacher_name: course.teacher_name,
-              week_day: course.week_day,
-              scheduled_time: course.scheduled_time,
-              host_id: 'N/A',
-              today_date: today,
-              entered_time: '',
-              finished_time: '',
-              total_time: '',
-              status: status,
-            };
-
-            appendToAttendanceCSV(newRecord);
-
-            // Emit event to clients
-            io.emit('attendanceUpdated', newRecord);
-          }
-        });
-      }
-    }
+// Write updated records back to CSV
+function writeToCSV(records) {
+  const writer = csvWriter.createObjectCsvWriter({
+    path: CSV_FILE_PATH,
+    header: [
+      { id: 'id', title: 'ID' },
+      { id: 'topic', title: 'Topic' },
+      { id: 'host_id', title: 'Host ID' },
+      { id: 'start_time', title: 'Start Time' },
+      { id: 'end_time', title: 'End Time' },
+    ],
   });
+
+  writer.writeRecords(records)
+    .then(() => console.log('CSV file updated with meeting end time'))
+    .catch((err) => console.error('Error updating CSV:', err));
 }
 
-// Function to send email to IT
-function sendEmailToIT({ subject, text }) {
-  const mailOptions = {
-    from: process.env.SMTP_USER,
-    to: process.env.IT_EMAIL,
-    subject,
-    text,
-  };
-
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      return console.error('Error sending email:', error);
-    }
-    console.log('Email sent:', info.response);
-  });
-}
-
-// Function to generate teacher reports at the end of the month
-function generateTeacherReports() {
-  const today = moment().tz('Europe/London');
-  const tomorrow = today.clone().add(1, 'day');
-
-  // Check if today is the last day of the month
-  if (today.month() !== tomorrow.month()) {
-    console.log('Generating teacher reports...');
-
-    const currentMonthYear = today.format('MMMM YYYY');
-    const monthDir = path.join(reportsDir, `${currentMonthYear}`);
-
-    // Ensure the month directory exists
-    if (!fs.existsSync(monthDir)) {
-      fs.mkdirSync(monthDir);
-    }
-
-    // Read attendance.csv
-    const records = [];
-    if (fs.existsSync(attendanceCsvPath)) {
-      fs.createReadStream(attendanceCsvPath)
-        .pipe(csvParser())
-        .on('data', (data) => {
-          // Filter records for the current month
-          const recordDate = moment(data.today_date, 'YYYY-MM-DD');
-          if (recordDate.format('MMMM YYYY') === currentMonthYear) {
-            records.push(data);
-          }
-        })
-        .on('end', () => {
-          // Group records by teacher_name
-          const recordsByTeacher = records.reduce((acc, record) => {
-            const teacherName = record.teacher_name;
-            if (!acc[teacherName]) {
-              acc[teacherName] = [];
-            }
-            acc[teacherName].push(record);
-            return acc;
-          }, {});
-
-          // Write each teacher's records to their own CSV file
-          Object.keys(recordsByTeacher).forEach((teacherName) => {
-            const sanitizedTeacherName = teacherName.replace(/[/\\?%*:|"<>]/g, '-');
-            const teacherCsvPath = path.join(
-              monthDir,
-              `${sanitizedTeacherName} - ${currentMonthYear}.csv`
-            );
-
-            const headers = [
-              { id: 'course_id', title: 'Course ID' },
-              { id: 'course_name', title: 'Course Name' },
-              { id: 'teacher_name', title: 'Teacher Name' },
-              { id: 'week_day', title: 'Week Day' },
-              { id: 'scheduled_time', title: 'Scheduled Time' },
-              { id: 'host_id', title: 'Host ID' },
-              { id: 'today_date', title: 'Date' },
-              { id: 'entered_time', title: 'Entered Time' },
-              { id: 'finished_time', title: 'Finished Time' },
-              { id: 'total_time', title: 'Total Time (minutes)' },
-              { id: 'status', title: 'Status' },
-            ];
-
-            const writer = csvWriter({
-              path: teacherCsvPath,
-              header: headers,
-            });
-
-            writer
-              .writeRecords(recordsByTeacher[teacherName])
-              .then(() => console.log(`Report generated for ${teacherName}`))
-              .catch((err) =>
-                console.error(`Error writing report for ${teacherName}:`, err)
-              );
-          });
-        });
-    } else {
-      console.log('No attendance records found for this month.');
-    }
-  } else {
-    console.log('Today is not the last day of the month. No reports generated.');
-  }
-}
-
-// Socket.io connection handler
-io.on('connection', (socket) => {
-  console.log('A client connected');
-
-  // Send today's attendance records to the client
-  sendAttendanceDataToClient(socket);
-
-  socket.on('disconnect', () => {
-    console.log('A client disconnected');
-  });
-});
-
-// Function to send attendance data to client
-function sendAttendanceDataToClient(socket) {
-  const today = moment().tz('Europe/London').format('YYYY-MM-DD');
-  const records = [];
-  if (fs.existsSync(attendanceCsvPath)) {
-    fs.createReadStream(attendanceCsvPath)
-      .pipe(csvParser())
-      .on('data', (data) => {
-        if (data.today_date === today) {
-          records.push(data);
-        }
-      })
-      .on('end', () => {
-        socket.emit('initialData', records);
-      });
-  } else {
-    socket.emit('initialData', []);
-  }
-}
-
-// Schedule tasks
-
-// Load courses and check attendance every day at 03:00
-nodeCron.schedule('0 3 * * *', () => {
-  console.log('Loading courses and checking attendance at 03:00...');
-  loadCourses();
-  checkAttendance();
-});
-
-// Generate teacher reports at 23:00 on the last day of the month
-nodeCron.schedule('0 23 * * *', () => {
-  console.log('Daily check at 23:00...');
-  generateTeacherReports();
-});
-
-// Start the server
-server.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-
-  // Load courses and check attendance on server start
-  loadCourses();
-  checkAttendance();
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
