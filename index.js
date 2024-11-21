@@ -65,7 +65,7 @@ const loadTodaysCourses = () => {
     }
 };
 
-// Update host_name in attendance.csv if the meeting occurred
+// Update host_name for all matching topics in attendance.csv
 const updateHostNameInAttendance = (course) => {
     console.log(`Checking attendance for course: ${course.topic} at ${course.scheduled_time}`);
     try {
@@ -81,26 +81,30 @@ const updateHostNameInAttendance = (course) => {
             };
         }).filter(meeting => meeting.topic && meeting.start_time); // Filter out incomplete rows
 
-        const meetingIndex = attendanceData.findIndex(meeting => meeting.topic === course.topic);
+        let updated = false;
+        const updatedData = attendanceData.map(meeting => {
+            if (meeting.topic === course.topic) {
+                meeting.host_name = course.host_name;
+                updated = true;
+            }
+            return meeting;
+        });
 
-        if (meetingIndex !== -1) {
-            console.log(`Meeting for course: ${course.topic} found. Updating host_name.`);
-            attendanceData[meetingIndex].host_name = course.host_name;
-
+        if (updated) {
             const updatedCSVData = [
                 'id,topic,host_id,start_time,end_time,host_name',
-                ...attendanceData.map(meeting =>
+                ...updatedData.map(meeting =>
                     `${meeting.id},${meeting.topic},${meeting.host_id},${meeting.start_time},${meeting.end_time},${meeting.host_name}`
                 ),
             ].join('\n');
 
             fs.writeFileSync(csvFilePath, updatedCSVData);
-            console.log('Host name updated in attendance.csv successfully.');
+            console.log(`Host name updated for all occurrences of topic "${course.topic}" in attendance.csv.`);
         } else {
-            console.log(`Meeting not found for course: ${course.topic}.`);
+            console.log(`No matching meetings found for course: ${course.topic}.`);
         }
     } catch (err) {
-        console.error('Failed to update attendance or send email:', err.message);
+        console.error('Failed to update attendance:', err.message);
     }
 };
 
