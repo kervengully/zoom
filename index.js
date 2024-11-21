@@ -86,8 +86,8 @@ const checkMeetingAttendance = async (course) => {
             await transporter.sendMail({
                 from: SMTP_USER,
                 to: IT_EMAIL,
-                subject: `Meeting Not Started: ${course.topic}`,
-                text: `The scheduled meeting for "${course.topic}" at ${course.scheduled_time} (UK time) has not started.`,
+                subject: `Lesson Not Started: ${course.topic} - ${course.host_name}`,
+                text: `The scheduled lesson for "${course.topic}" at ${course.scheduled_time} (UK time) has not started.`,
             });
             console.log('Email sent to IT successfully.');
         } else {
