@@ -25,11 +25,11 @@ app.use(express.json());
 
 // Ensure the CSV file exists and has headers
 if (!fs.existsSync(csvFilePath)) {
-    console.log('Attendance file does not exist. Creating it...');
-    fs.writeFileSync(csvFilePath, 'id,topic,host_id,start_time,end_time\n');
-    console.log('Attendance file created successfully.');
+  console.log('Attendance file does not exist. Creating it...');
+  fs.writeFileSync(csvFilePath, 'id,topic,host_id,start_time,end_time,total_time,host_name,rate_pound,payment\n');
+  console.log('Attendance file created successfully.');
 } else {
-    console.log('Attendance file exists. Proceeding...');
+  console.log('Attendance file exists. Proceeding...');
 }
 
 // Configure SMTP transporter
