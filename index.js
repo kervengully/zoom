@@ -5,8 +5,8 @@ const fs = require('fs');
 const path = require('path');
 const schedule = require('node-schedule');
 const nodemailer = require('nodemailer');
-const { format, parseISO } = require('date-fns');
-const { utcToZonedTime } = require('date-fns-tz');
+const { format } = require('date-fns');
+const { parse } = require('date-fns-tz');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -72,18 +72,11 @@ const checkMeetingAttendance = async (course) => {
     try {
         const attendanceData = fs.readFileSync(csvFilePath, 'utf8').split('\n').slice(1).map(line => {
             const [id, topic, host_id, start_time] = line.split(',');
-            return { id, topic, host_id, start_time };
+            return { id, topic: topic.trim(), host_id, start_time: start_time.trim() };
         });
 
-        const scheduledTime = format(
-            utcToZonedTime(new Date(`${format(new Date(), 'yyyy-MM-dd')}T${course.scheduled_time}:00`), 'Europe/London'),
-            "yyyy-MM-dd'T'HH:mm:ss'Z'"
-        );
-
-        const meetingExists = attendanceData.some(meeting => 
-            meeting.topic.trim() === course.topic.trim() &&
-            new Date(meeting.start_time) <= new Date(scheduledTime)
-        );
+        // Compare topics to check if the meeting has started
+        const meetingExists = attendanceData.some(meeting => meeting.topic === course.topic);
 
         if (!meetingExists) {
             console.log(`Meeting not started for course: ${course.topic}. Sending email to IT.`);
