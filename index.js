@@ -76,10 +76,30 @@ function initializeCSV() {
 initializeCSV();
 
 // Route to handle Zoom webhooks
-app.post('/webhook', verifyZoomRequest, (req, res) => {
+app.post('/zoom/webhook', (req, res, next) => {
   const { event, payload } = req.body;
 
   console.log(`Received event: ${event}`);
+
+  // Handle Zoom endpoint validation
+  if (event === 'endpoint.url_validation') {
+    const plainToken = payload.plainToken;
+    const encryptedToken = crypto
+      .createHmac('sha256', ZOOM_SECRET_TOKEN)
+      .update(plainToken)
+      .digest('hex');
+
+    console.log('Endpoint URL validation requested.');
+    return res.status(200).json({
+      plainToken,
+      encryptedToken,
+    });
+  } else {
+    // Proceed to HMAC verification middleware
+    next();
+  }
+}, verifyZoomRequest, (req, res) => {
+  const { event, payload } = req.body;
 
   if (event === 'meeting.started') {
     handleMeetingStarted(payload);
@@ -96,13 +116,13 @@ app.post('/webhook', verifyZoomRequest, (req, res) => {
 function handleMeetingStarted(payload) {
   const { id, topic, host_id, start_time } = payload.object;
   const data = {
-    id: id.toString(),
-    topic,
-    host_id,
-    start_time,
-    end_time: '',
+    ID: id.toString(),
+    Topic: topic,
+    'Host ID': host_id,
+    'Start Time': start_time,
+    'End Time': '',
   };
-  console.log(`Handling meeting.started for meeting ID: ${data.id}`);
+  console.log(`Handling meeting.started for meeting ID: ${data.ID}`);
   appendToCSV(data);
 }
 
@@ -115,22 +135,20 @@ function handleMeetingEnded(payload) {
 
 // Append new meeting data to CSV
 function appendToCSV(data) {
-  const fileExists = fs.existsSync(CSV_FILE_PATH);
-
   const writer = csvWriter.createObjectCsvWriter({
     path: CSV_FILE_PATH,
     header: [
-      { id: 'id', title: 'ID' },
-      { id: 'topic', title: 'Topic' },
-      { id: 'host_id', title: 'Host ID' },
-      { id: 'start_time', title: 'Start Time' },
-      { id: 'end_time', title: 'End Time' },
+      { id: 'ID', title: 'ID' },
+      { id: 'Topic', title: 'Topic' },
+      { id: 'Host ID', title: 'Host ID' },
+      { id: 'Start Time', title: 'Start Time' },
+      { id: 'End Time', title: 'End Time' },
     ],
     append: true, // Always append to the file
   });
 
   writer.writeRecords([data])
-    .then(() => console.log(`Meeting started data appended to CSV for meeting ID: ${data.id}`))
+    .then(() => console.log(`Meeting started data appended to CSV for meeting ID: ${data.ID}`))
     .catch((err) => console.error('Error writing to CSV:', err));
 }
 
