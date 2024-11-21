@@ -65,7 +65,7 @@ app.post('/webhook', (req, res) => {
     }
 
     const event = req.body.event;
-    const payload = req.body.object;
+    const payload = req.body.payload?.object;
 
     if (!payload) {
         console.log('Invalid payload: Missing object.');
