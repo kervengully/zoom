@@ -6,7 +6,7 @@ const path = require('path');
 const schedule = require('node-schedule');
 const nodemailer = require('nodemailer');
 const { format, parseISO } = require('date-fns');
-const { zonedTimeToUtc } = require('date-fns-tz');
+const { utcToZonedTime } = require('date-fns-tz');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -75,9 +75,14 @@ const checkMeetingAttendance = async (course) => {
             return { id, topic, host_id, start_time };
         });
 
+        const scheduledTime = format(
+            utcToZonedTime(new Date(`${format(new Date(), 'yyyy-MM-dd')}T${course.scheduled_time}:00`), 'Europe/London'),
+            "yyyy-MM-dd'T'HH:mm:ss'Z'"
+        );
+
         const meetingExists = attendanceData.some(meeting => 
             meeting.topic.trim() === course.topic.trim() &&
-            parseISO(meeting.start_time) <= zonedTimeToUtc(new Date(`${format(new Date(), 'yyyy-MM-dd')}T${course.scheduled_time}:00`), 'Europe/London')
+            new Date(meeting.start_time) <= new Date(scheduledTime)
         );
 
         if (!meetingExists) {
@@ -86,7 +91,7 @@ const checkMeetingAttendance = async (course) => {
                 from: SMTP_USER,
                 to: IT_EMAIL,
                 subject: `Meeting Not Started: ${course.topic}`,
-                text: `The scheduled meeting for "${course.topic}" at ${course.scheduled_time} has not started.`,
+                text: `The scheduled meeting for "${course.topic}" at ${course.scheduled_time} (UK time) has not started.`,
             });
             console.log('Email sent to IT successfully.');
         } else {
