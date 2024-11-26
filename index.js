@@ -86,8 +86,8 @@ const checkMeetingAttendance = async (course) => {
             await transporter.sendMail({
                 from: SMTP_USER,
                 to: IT_EMAIL,
-                subject: `Lesson Not Started: ${course.topic} - ${course.host_name}`,
-                text: `The scheduled lesson for "${course.topic}" at ${course.scheduled_time} (UK time) has not started.`,
+                subject: `Lesson Not Started`,
+                text: `The scheduled lesson for "${course.topic} - ${course.host_name}" at ${course.scheduled_time} (UK time) has not started.`,
             });
             console.log('Email sent to IT successfully.');
         } else {
@@ -144,20 +144,51 @@ const updateMeetingDetailsOnEnd = (meetingId, startTime, endTime) => {
     console.log('Meeting details updated successfully.');
 };
 
+// Array to store scheduled jobs
+let scheduledJobs = [];
+
 // Schedule daily course checks at 04:00
 schedule.scheduleJob('0 4 * * *', () => {
+    console.log('Daily schedule job running at 04:00');
+    // Cancel all previously scheduled jobs
+    scheduledJobs.forEach(job => job.cancel());
+    scheduledJobs = [];
+
+    // Load today's courses
     loadTodaysCourses();
+
+    // Schedule attendance checks for today's courses
     todaysCourses.forEach(course => {
-        const [hour, minute] = course.scheduled_time.split(':').map(Number);
-        schedule.scheduleJob({ hour, minute, tz: 'Europe/London' }, () => checkMeetingAttendance(course));
+        const [hourStr, minuteStr] = course.scheduled_time.split(':');
+        const hour = parseInt(hourStr, 10);
+        const minute = parseInt(minuteStr, 10);
+        const job = schedule.scheduleJob(
+            { hour, minute, tz: 'Europe/London' },
+            () => checkMeetingAttendance(course)
+        );
+        scheduledJobs.push(job);
+        console.log(`Scheduled attendance check for course: ${course.topic} at ${course.scheduled_time}`);
     });
 });
 
-// Load courses on server start and set up checks for today's courses
+// On server start, cancel any existing jobs (in case the server is restarted)
+scheduledJobs.forEach(job => job.cancel());
+scheduledJobs = [];
+
+// Load today's courses
 loadTodaysCourses();
+
+// Schedule attendance checks for today's courses
 todaysCourses.forEach(course => {
-    const [hour, minute] = course.scheduled_time.split(':').map(Number);
-    schedule.scheduleJob({ hour, minute, tz: 'Europe/London' }, () => checkMeetingAttendance(course));
+    const [hourStr, minuteStr] = course.scheduled_time.split(':');
+    const hour = parseInt(hourStr, 10);
+    const minute = parseInt(minuteStr, 10);
+    const job = schedule.scheduleJob(
+        { hour, minute, tz: 'Europe/London' },
+        () => checkMeetingAttendance(course)
+    );
+    scheduledJobs.push(job);
+    console.log(`Scheduled attendance check for course: ${course.topic} at ${course.scheduled_time}`);
 });
 
 // Zoom webhook endpoint
